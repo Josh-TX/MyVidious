@@ -1,0 +1,14 @@
+.vs
+/Server/obj
+/Server/bin
+/Server/wwwroot
+/Database/bin
+/Database/obj
+/Database/*.jfm
+/Database/*.dbmdl
+/Server/Properties
+/nswag/bin
+/nswag/bin
+/nswag/obj
+/UI/node_modules
+/UI/.angular

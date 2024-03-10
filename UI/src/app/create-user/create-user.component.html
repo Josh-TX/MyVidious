@@ -1,0 +1,9 @@
+<h1>Create <span *ngIf="isFirstUser">Admin</span> User</h1>
+<p *ngIf="isFirstUser">Since there aren't any users yet, this user will be the admin</p>
+<label>Username</label>
+<input [(ngModel)]="username">
+<small>Keep in mind this username will be part of the url path for your algorithms.</small>
+<hr>
+<label>Password</label>
+<input type="password" [(ngModel)]="password">
+<button (click)="create()">Login</button>

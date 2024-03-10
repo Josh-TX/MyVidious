@@ -1,0 +1,9 @@
+<h1>Login Component</h1>
+<label>Username</label>
+<input [(ngModel)]="username">
+<hr>
+<label>Password</label>
+<input type="password" [(ngModel)]="password">
+{{error}}
+<button (click)="login()">Login</button>
+<a routerLink="/create-user">create new user</a>
