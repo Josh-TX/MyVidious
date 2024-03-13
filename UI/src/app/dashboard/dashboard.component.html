@@ -1,1 +1,8 @@
-<h1>Dashboard Component</h1>
+<div style="margin: 16px">
+    <h2 style="margin-bottom: 16px;">Your Algorithms</h2>
+    <div *ngFor="let algorithm of algorithms" style="margin-bottom: 16px; display: flex; gap: 16px">
+        <a [routerLink]="['/algorithm', algorithm.algorithmId]">{{algorithm.username}}/{{algorithm.algorithmName}}</a>
+        <div class="text-muted">{{algorithm.description}}</div>
+    </div>
+    <button mat-raised-button [routerLink]="['/algorithm', 'new']">Create New Algorithm</button>
+</div>

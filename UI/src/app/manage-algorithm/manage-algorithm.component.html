@@ -1,0 +1,75 @@
+<div style="padding: 16px;">
+    <h3 *ngIf="!algorithmId">New Algorithm will be available at <span class="text-primary">{{getPath()}}</span></h3>
+    <h3 *ngIf="algorithmId">Algorithm available at <span class="text-primary">{{getPath()}}</span></h3>
+    <div style="display: flex; gap: 16px; margin: 16px 0;">
+        <div style="max-width: 200px;">
+            <mat-form-field class="w-100" style="margin-bottom: -23px;">
+                <mat-label>Algorithm Name</mat-label>
+                <input autocomplete="off" matInput [(ngModel)]="name" name="name">
+            </mat-form-field>
+        </div>
+        <div style="flex-grow: 1;">
+            <mat-form-field class="w-100" style="margin-bottom: -23px;">
+                <mat-label>Algorithm Description</mat-label>
+                <input autocomplete="off" matInput [(ngModel)]="description" name="description">
+            </mat-form-field>
+        </div>
+        <div>
+            <button mat-raised-button color="primary" style="height: 56px;" (click)="save()">
+                Save Changes
+            </button>
+        </div>
+    </div>
+    <div style="display: flex; gap: 16px; flex-direction: row-reverse; align-items: center;">
+        <channel-search style="flex-grow: 1; max-width: 700px;" (select)="addChannel($event)"></channel-search>
+        <div>
+            Adding a Channel
+        </div>
+    </div>
+    <table #table mat-table [dataSource]="items" class="mat-elevation-z8" style="margin-top: 16px;">
+
+        <ng-container matColumnDef="type">
+            <th mat-header-cell *matHeaderCellDef> Type </th>
+            <td mat-cell *matCellDef="let item"> channel </td>
+        </ng-container>
+
+        <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef> Name </th>
+            <td mat-cell *matCellDef="let item"> {{item.name}} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef> Description </th>
+            <td mat-cell *matCellDef="let item"> {{item.description}} </td>
+        </ng-container>
+        
+        <ng-container matColumnDef="maxChannelWeight">
+            <th mat-header-cell *matHeaderCellDef> Max Channel Weight </th>
+            <td mat-cell *matCellDef="let item">
+                <input type="number" [(ngModel)]="item.maxChannelWeight">
+            </td>
+        </ng-container>
+
+
+        <ng-container matColumnDef="weightMultiplier">
+            <th mat-header-cell *matHeaderCellDef> Weight Multiplier </th>
+            <td mat-cell *matCellDef="let item"> 
+                <input type="number" [(ngModel)]="item.weightMultiplier">
+            </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef> Status </th>
+            <td mat-cell *matCellDef="let item"> {{item.status}} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef> Actions </th>
+            <td mat-cell *matCellDef="let item"> 
+                <button mat-raised-button (click)="remove(item)">Remove</button>
+            </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+</div>

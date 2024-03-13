@@ -1,9 +1,32 @@
-<h1>Create <span *ngIf="isFirstUser">Admin</span> User</h1>
-<p *ngIf="isFirstUser">Since there aren't any users yet, this user will be the admin</p>
-<label>Username</label>
-<input [(ngModel)]="username">
-<small>Keep in mind this username will be part of the url path for your algorithms.</small>
-<hr>
-<label>Password</label>
-<input type="password" [(ngModel)]="password">
-<button (click)="create()">Login</button>
+<div class="h-100" style="background: #DEF; padding-top: 20vh;">
+    <div style="margin: 0 auto; max-width: 300px; padding: 24px; background: white;" >
+        <h3 style="margin-bottom: 16px;">Create <span *ngIf="isFirstUser">Head Admin</span> User</h3>
+        <form (submit)="create()" autocomplete=false>
+            <mat-form-field class="w-100">
+                <mat-label>Username</mat-label>
+                <input matInput [(ngModel)]="username" name="username">
+            </mat-form-field>
+        
+            <mat-form-field class="w-100">
+                <mat-label>Password</mat-label>
+                <input matInput type="password" [(ngModel)]="password" name="password">
+            </mat-form-field>
+
+            <mat-form-field class="w-100">
+                <mat-label>Re-Enter Password</mat-label>
+                <input matInput type="password" [(ngModel)]="password2" name="password">
+            </mat-form-field>
+
+            <div class="text-danger">{{error}}</div>
+        
+            <div style="display: flex; flex-direction: row-reverse;">
+                <button type="submit" mat-flat-button color="primary">Submit</button>
+            </div>
+        </form>
+    </div>
+    <div style="margin: 0 auto; max-width: 300px; padding: 24px;">
+        <div style="margin-left: -24px">
+            <a mat-flat-button routerLink="/login" [replaceUrl]="true">log in instead</a>
+        </div>
+    </div>
+</div>

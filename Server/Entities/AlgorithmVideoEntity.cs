@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyVidious.Data;
 
+//should match the output of the proc GetAlgorithmVideos
 public class AlgorithmVideoEntity
 {
     public int ChannelId { get; set; }

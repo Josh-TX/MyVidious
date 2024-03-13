@@ -10,18 +10,23 @@ import { AuthService } from "../services/auth.service";
 })
 export class CreateUserComponent {
     constructor(private client: Client, private authService: AuthService, private router: Router){
-        this.authService.getUserInfo().subscribe(z => this.isFirstUser = !z.anyUsers)
+        this.authService.getUserInfoAsync().subscribe(z => this.isFirstUser = !z.anyUsers)
     }
     isFirstUser: boolean = false;
     username: string  = "";
     password: string = "";
+    password2: string = "";
     error: string = "";
     create(){
         this.error = "";
+        if (this.password != this.password2){
+            this.error = "passwords don't match";
+            return;
+        }
         this.client.createUser({ username: this.username, password: this.password}).subscribe({
             next: userInfo => {
                 this.authService.setUserInfo(userInfo);
-                this.router.navigate(["/dashboard"]);
+                this.router.navigate(["/dashboard"], {replaceUrl: true});
             },
             error: error => {
                 this.error = error;

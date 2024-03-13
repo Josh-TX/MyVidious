@@ -21,10 +21,10 @@ export class LoginComponent {
         this.client.login({ username: this.username, password: this.password}).subscribe({
             next: userInfo => {
                 this.authService.setUserInfo(userInfo);
-                this.router.navigate(["/dashboard"]);
+                this.router.navigate(["/dashboard"], {replaceUrl: true});
             },
             error: error => {
-                this.error = error;
+                this.error = "Invalid Credentials";
             }
         });
     }

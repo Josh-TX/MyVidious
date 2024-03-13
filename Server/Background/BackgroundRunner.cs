@@ -3,6 +3,7 @@ using Meilisearch;
 using MyVidious.Access;
 using MyVidious.Data;
 using MyVidious.Models;
+using MyVidious.Models.Invidious;
 
 namespace MyVidious.Background; 
 
@@ -63,13 +64,13 @@ public class BackgroundRunner : BackgroundService
 
     private async Task UpdateChannelVideos(CancellationToken stoppingToken, VideoDbContext videoDbContext, ChannelEntity channel)
     {
-        var request = new Models.ChannelVideosRequest
+        var request = new Models.Invidious.ChannelVideosRequest
         {
             Sort_by = "newest"
         };
         while(true)
         {
-            Models.ChannelVideosResponse response;
+            Models.Invidious.ChannelVideosResponse response;
             try
             {
                 response = await _invidiousAPIAccess.GetChannelVideos(channel.UniqueId, request);

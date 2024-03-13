@@ -1,7 +1,7 @@
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
-namespace MyVidious.Models;
+namespace MyVidious.Models.Invidious;
 
 //Attempts to use the `Type` property as a TypeDiscriminator didn't work properly. The Json serialization added a null type property
 
@@ -22,9 +22,9 @@ public class SearchResponseConverter : JsonConverter
 
         SearchResponseBase target = type switch
         {
-            "video" => new SearchVideoResponse(),
-            "channel" => new SearchChannelResponse(),
-            "playlist" => new SearchPlaylistResponse(),
+            "video" => new SearchResponse_Video(),
+            "channel" => new SearchResponse_Channel(),
+            "playlist" => new SearchResponse_Playlist(),
             _ => throw new ArgumentException($"Invalid search result type: {type}"),
         };
 
@@ -46,7 +46,7 @@ public class SearchResponseBase {
 }
 
 //this is basically identical to the video object. But I don't wanna deal with the Type property being on the base type
-public class SearchVideoResponse : SearchResponseBase
+public class SearchResponse_Video : SearchResponseBase
 {
     public string Title { get; set; }
     public string VideoId { get; set; }
@@ -74,7 +74,7 @@ public class SearchVideoResponse : SearchResponseBase
     public bool IsUpcoming { get; set; }
 }
 
-public class SearchChannelResponse : SearchResponseBase
+public class SearchResponse_Channel : SearchResponseBase
 {
     public string ChannelHandle { get; set; }
     public string Description { get; set; }
@@ -89,7 +89,7 @@ public class SearchChannelResponse : SearchResponseBase
     public int VideoCount {get;set;}
 }
 
-public class SearchPlaylistResponse : SearchResponseBase
+public class SearchResponse_Playlist : SearchResponseBase
 {
     public string Title { get; set; }
     public string PlaylistId { get; set; }

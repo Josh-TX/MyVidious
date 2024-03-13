@@ -1,4 +1,4 @@
-namespace MyVidious.Models;
+namespace MyVidious.Models.Invidious;
 
 /// <summary>
 /// Should match the available input parameters of /api/v1/channels/{channelId}/videos

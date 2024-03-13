@@ -14,7 +14,7 @@ public class ChannelEntity
     public string Handle { get; set; }
 
     /// <summary>
-    /// When true, indicates that we've scraped all the way to the oldest, so now we can scrape starting at most recent until we reach videos we already have stored. 
+    /// When true, indicates that we've scraped all the way to the oldest. This is very important, because now anytime we scrap, we can stop as soon as we encounter an existing video
     /// </summary>
     public bool ScrapedToOldest { get; set; }
     public DateTime? DateLastScraped { get; set; }

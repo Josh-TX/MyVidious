@@ -54,11 +54,12 @@ services.AddScoped<IPScopedCache>();
 services.AddScoped<GlobalCache>();
 services.AddScoped<AlgorithmAccess>();
 services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
-
+services.AddRazorPages();
 services.AddSwaggerGen(options =>
 {
     //not sure why this isn't being done automatically 
     options.CustomOperationIds(e => $"{e.ActionDescriptor.RouteValues["action"]}");
+    options.EnableAnnotations();
 });
 
 var app = builder.Build();
@@ -68,7 +69,7 @@ app.UseDeveloperExceptionPage();
 app.UseSwagger();
 //app.MapGet("/user", (ClaimsPrincipal user) => $"hello {user.Identity!.Name}").RequireAuthorization();
 app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious API V1"));
-//app.MapReverseProxy();
+app.MapReverseProxy();
 app.Run();
 
 

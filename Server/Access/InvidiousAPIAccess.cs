@@ -1,4 +1,5 @@
 using MyVidious.Models;
+using MyVidious.Models.Invidious;
 
 namespace MyVidious.Access;
 

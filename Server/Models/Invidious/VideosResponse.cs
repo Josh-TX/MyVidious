@@ -1,4 +1,4 @@
-namespace MyVidious.Models;
+namespace MyVidious.Models.Invidious;
 
 /// <summary>
 /// Should match the response of /api/v1/videos/{videoId}

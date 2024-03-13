@@ -8,6 +8,7 @@ using MyVidious.Data;
 using MyVidious.Access;
 using MyVidious.Models;
 using Microsoft.EntityFrameworkCore;
+using MyVidious.Models.Invidious;
 
 namespace MyVidious.Controllers
 {
@@ -36,7 +37,7 @@ namespace MyVidious.Controllers
                 Q = channelName,
                 Type = "channel"
             });
-            var channel = searchResults.OfType<SearchChannelResponse>().FirstOrDefault(z => z.ChannelHandle.ToLower().Trim('@') == channelName.ToLower().Trim('@'));
+            var channel = searchResults.OfType<SearchResponse_Channel>().FirstOrDefault(z => z.ChannelHandle.ToLower().Trim('@') == channelName.ToLower().Trim('@'));
             if (channel == null)
             {
                 return NotFound();

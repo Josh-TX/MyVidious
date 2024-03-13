@@ -1,6 +1,14 @@
-<div style="height: 48px; display: flex; justify-content: space-between; align-items: center;">
-    <h2 style="margin: 0;">MyVidious Admin</h2>
+<div style="height: 48px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 0 12px;">
+    <h2 style="margin: 0;" [routerLink]="['/dashboard']">MyVidious Admin</h2>
     <div *ngIf="userInfo">
-        {{userInfo.username}}
+        <button mat-button [matMenuTriggerFor]="menu">
+            <mat-icon class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color">person</mat-icon>
+            {{userInfo.username}}
+        </button>
+        <mat-menu #menu="matMenu">
+        <button mat-menu-item disabled>{{userInfo.isAdmin ? 'Head Admin' : 'User'}}</button>
+        <button mat-menu-item>Change Password</button>
+        <button mat-menu-item (click)="logout()">Logout</button>
+        </mat-menu>
     </div>
 </div>

@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace MyVidious.Models;
+namespace MyVidious.Models.Invidious;
 
 /// <summary>
 /// Should match the VideoObject in the documentation

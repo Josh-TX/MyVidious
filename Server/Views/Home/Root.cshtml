@@ -1,0 +1,28 @@
+﻿﻿@{
+    @model List<MyVidious.Models.Admin.FoundAlgorithm>
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MyVidious</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>MyVidious</h1>
+    <p>There actually isn't an API exposed here. Instead, users can use the <a href="/admin">admin</a> page to configure "algorithms" which become API endpoints</p>
+    @if (Model.Count == 0)
+    {
+        <p>No algorithms have been created yet. Go to the <a href="/admin">admin</a> page to create one</p>
+    }
+    <ul>
+        @foreach (var alg in Model)
+        {
+            <li><a href="/@alg.Username/@alg.AlgorithmName">@alg.Username/@alg.AlgorithmName</a> - @alg.Description</li>
+        }
+    </ul>
+</body>
+</html>

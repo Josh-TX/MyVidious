@@ -1,4 +1,4 @@
-namespace MyVidious.Models; 
+namespace MyVidious.Models.Invidious; 
 
 public class AuthorThumbnail
 {

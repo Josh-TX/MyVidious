@@ -11,7 +11,16 @@ import { AuthService } from "../services/auth.service";
 })
 export class NavbarComponent {
     constructor(private authService: AuthService, private router: Router){
-        this.authService.getUserInfo().subscribe(z => this.userInfo = z)
+        this.authService.getUserInfoAsync().subscribe(z => this.userInfo = z)
     }
     userInfo: UserInfo | undefined  
+
+    logout(){
+        this.authService.setUserInfo({
+            username: undefined,
+            isAdmin: false,
+            anyUsers: true
+        });
+        this.router.navigate(["/login"])
+    }
 }

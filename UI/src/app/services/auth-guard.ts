@@ -9,9 +9,8 @@ export const authGuardFunction: CanActivateFn = (
     state: RouterStateSnapshot) => {
         const authService = inject(AuthService);
         const router = inject(Router);
-        return authService.getUserInfo().pipe(take(1), map(userInfo => {
+        return authService.getUserInfoAsync().pipe(take(1), map(userInfo => {
             if (userInfo.username != null){
-                console.log("returning true")
                 return true;
             } 
             if (userInfo.anyUsers){
@@ -19,7 +18,6 @@ export const authGuardFunction: CanActivateFn = (
             } else {
                 router.navigate(["/create-user"]);
             }
-            console.log("returning false")
             return false;
         }))
   }

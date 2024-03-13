@@ -1,5 +1,6 @@
 using MyVidious.Data;
 using MyVidious.Models;
+using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
 
 namespace MyVidious.Access;
@@ -16,31 +17,32 @@ public class AlgorithmAccess
         _ipScopedCache = ipScopedCache;
     }
 
-    public int? GetAlgorithmId(string algorithmName)
+    public int? GetAlgorithmId(string username, string algorithmName)
     {
-        return _getAlgorithmId(algorithmName);
+        return _getAlgorithmId(username, algorithmName);
     }
 
-    public IEnumerable<RecommendedVideo> GetAlgorithmVideos(string algorithmName, int take)
+    public IEnumerable<RecommendedVideo> GetAlgorithmVideos(string username, string algorithmName, int take)
     {
-        var id = _getAlgorithmId(algorithmName)!.Value;
+        var id = _getAlgorithmId(username, algorithmName)!.Value;
         var videoIds = GetAlgorithmVideoIds(id);
         var videoIdsToLoad = GetSubsetOfVideoIds(id, videoIds, take);
         var videos = _videoDbContext.Videos.Where(z => videoIdsToLoad.Contains(z.Id)).ToList();
         return videoIdsToLoad.Select(videoId => TranslateToRecommended(videos.First(z => z.Id == videoId))).ToList();
     }
 
-    private static Dictionary<string, int?> _algorithmNameIdMap = new Dictionary<string, int?>();
+    private static Dictionary<(string, string), int?> _algorithmNameIdMap = new Dictionary<(string, string), int?>();
 
-    private int? _getAlgorithmId(string algorithmName)
+    private int? _getAlgorithmId(string username, string algorithmName)
     {
-        if (_algorithmNameIdMap.TryGetValue(algorithmName, out var id))
+        username = username.ToLower();
+        if (_algorithmNameIdMap.TryGetValue((username, algorithmName), out var id))
         {
             return id;
         }
-        var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Name == algorithmName);
+        var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username == username && z.Name == algorithmName);
         var foundId = foundAlg?.Id;
-        _algorithmNameIdMap.Add(algorithmName, foundId);
+        _algorithmNameIdMap.Add((username, algorithmName), foundId);
         return foundId;
     }
 

@@ -1,5 +1,6 @@
 ﻿CREATE TABLE Algorithm (
 	Id INT PRIMARY KEY IDENTITY(1,1),
+	Username VARCHAR(20) NOT NULL, 
 	Name VARCHAR(20) NOT NULL,
 	Description VARCHAR(300) NULL
 )

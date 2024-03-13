@@ -29,6 +29,230 @@ export class Client {
     }
 
     /**
+     * @param searchText (optional) 
+     * @return Success
+     */
+    searchChannels(searchText: string | undefined): Observable<FoundChannel[]> {
+        let url_ = this.baseUrl + "/admin/api/search-channels?";
+        if (searchText === null)
+            throw new Error("The parameter 'searchText' cannot be null.");
+        else if (searchText !== undefined)
+            url_ += "searchText=" + encodeURIComponent("" + searchText) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSearchChannels(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSearchChannels(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FoundChannel[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FoundChannel[]>;
+        }));
+    }
+
+    protected processSearchChannels(response: HttpResponseBase): Observable<FoundChannel[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as FoundChannel[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @param username (optional) 
+     * @return Success
+     */
+    searchAlgorithms(username: string | undefined): Observable<FoundAlgorithm[]> {
+        let url_ = this.baseUrl + "/admin/api/search-algorithms?";
+        if (username === null)
+            throw new Error("The parameter 'username' cannot be null.");
+        else if (username !== undefined)
+            url_ += "username=" + encodeURIComponent("" + username) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSearchAlgorithms(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSearchAlgorithms(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FoundAlgorithm[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FoundAlgorithm[]>;
+        }));
+    }
+
+    protected processSearchAlgorithms(response: HttpResponseBase): Observable<FoundAlgorithm[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as FoundAlgorithm[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return Success
+     */
+    getAlgorithm(algorithmId: number): Observable<LoadAlgorithmResult> {
+        let url_ = this.baseUrl + "/admin/api/algorithm/{algorithmId}";
+        if (algorithmId === undefined || algorithmId === null)
+            throw new Error("The parameter 'algorithmId' must be defined.");
+        url_ = url_.replace("{algorithmId}", encodeURIComponent("" + algorithmId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetAlgorithm(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetAlgorithm(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<LoadAlgorithmResult>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<LoadAlgorithmResult>;
+        }));
+    }
+
+    protected processGetAlgorithm(response: HttpResponseBase): Observable<LoadAlgorithmResult> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as LoadAlgorithmResult;
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @param body (optional) 
+     * @return Success
+     */
+    updateAlgorithm(body: UpdateAlgorithmRequest | undefined): Observable<number> {
+        let url_ = this.baseUrl + "/admin/api/algorithm";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_ : any = {
+            body: content_,
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Content-Type": "application/json",
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("put", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processUpdateAlgorithm(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processUpdateAlgorithm(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<number>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<number>;
+        }));
+    }
+
+    protected processUpdateAlgorithm(response: HttpResponseBase): Observable<number> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as number;
+            return _observableOf(result200);
+            }));
+        } else if (status === 400) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result400: any = null;
+            result400 = _responseText === "" ? null : _responseText as string;
+            return throwException("validation issues", status, _responseText, _headers, result400);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @return Success
      */
     getUserInfo(): Observable<UserInfo> {
@@ -298,8 +522,11 @@ export class Client {
     /**
      * @return Success
      */
-    getVideo(algorithm: string, videoId: string): Observable<VideoResponse> {
-        let url_ = this.baseUrl + "/{algorithm}/api/v1/videos/{videoId}";
+    getVideo(username: string, algorithm: string, videoId: string): Observable<VideoResponse> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/videos/{videoId}";
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
         if (algorithm === undefined || algorithm === null)
             throw new Error("The parameter 'algorithm' must be defined.");
         url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
@@ -362,8 +589,11 @@ export class Client {
      * @param region (optional) 
      * @return Success
      */
-    getSearchResults(q: string | undefined, page: number | undefined, sort_By: string | undefined, date: string | undefined, duration: string | undefined, type: string | undefined, features: string | undefined, region: string | undefined, algorithm: string): Observable<void> {
-        let url_ = this.baseUrl + "/{algorithm}/api/v1/search?";
+    getSearchResults(q: string | undefined, page: number | undefined, sort_By: string | undefined, date: string | undefined, duration: string | undefined, type: string | undefined, features: string | undefined, region: string | undefined, username: string, algorithm: string): Observable<void> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/search?";
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
         if (algorithm === undefined || algorithm === null)
             throw new Error("The parameter 'algorithm' must be defined.");
         url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
@@ -444,11 +674,14 @@ export class Client {
     /**
      * @return Success
      */
-    getChannel(channelId: string, algorithm: string): Observable<ChannelResponse> {
-        let url_ = this.baseUrl + "/{algorithm}/api/v1/channels/{channelId}";
+    getChannel(channelId: string, username: string, algorithm: string): Observable<ChannelResponse> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/channels/{channelId}";
         if (channelId === undefined || channelId === null)
             throw new Error("The parameter 'channelId' must be defined.");
         url_ = url_.replace("{channelId}", encodeURIComponent("" + channelId));
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
         if (algorithm === undefined || algorithm === null)
             throw new Error("The parameter 'algorithm' must be defined.");
         url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
@@ -502,11 +735,14 @@ export class Client {
      * @param continuation (optional) 
      * @return Success
      */
-    getChannelVideos(channelId: string, sort_by: string | undefined, continuation: string | undefined, algorithm: string): Observable<ChannelVideosResponse> {
-        let url_ = this.baseUrl + "/{algorithm}/api/v1/channels/{channelId}/videos?";
+    getChannelVideos(channelId: string, sort_by: string | undefined, continuation: string | undefined, username: string, algorithm: string): Observable<ChannelVideosResponse> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/channels/{channelId}/videos?";
         if (channelId === undefined || channelId === null)
             throw new Error("The parameter 'channelId' must be defined.");
         url_ = url_.replace("{channelId}", encodeURIComponent("" + channelId));
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
         if (algorithm === undefined || algorithm === null)
             throw new Error("The parameter 'algorithm' must be defined.");
         url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
@@ -612,10 +848,42 @@ export interface CreateAccountRequest {
     password?: string | undefined;
 }
 
+export interface FoundAlgorithm {
+    algorithmId?: number;
+    username?: string | undefined;
+    algorithmName?: string | undefined;
+    description?: string | undefined;
+}
+
+export interface FoundChannel {
+    channelId?: number | undefined;
+    uniqueId?: string | undefined;
+    name?: string | undefined;
+    handle?: string | undefined;
+    description?: string | undefined;
+    thumbnailUrl?: string | undefined;
+    videoCount?: number | undefined;
+}
+
 export interface ImageObject {
     url?: string | undefined;
     width?: number;
     height?: number;
+}
+
+export interface LoadAlgorithmItem {
+    channelGroupId?: number | undefined;
+    channelId?: number | undefined;
+    weightMultiplier?: number;
+    maxChannelWeight?: number;
+    name?: string | undefined;
+}
+
+export interface LoadAlgorithmResult {
+    algorithmId?: number | undefined;
+    name?: string | undefined;
+    description?: string | undefined;
+    algorithmItems?: LoadAlgorithmItem[] | undefined;
 }
 
 export interface LoginRequest {
@@ -633,6 +901,21 @@ export interface RecommendedVideo {
     authorUrl?: string | undefined;
     authorId?: string | undefined;
     viewCount?: number;
+}
+
+export interface UpdateAlgorithmItem {
+    channelGroupId?: number | undefined;
+    channelId?: number | undefined;
+    newChannel?: FoundChannel;
+    maxChannelWeight?: number;
+    weightMultiplier?: number;
+}
+
+export interface UpdateAlgorithmRequest {
+    algorithmId?: number | undefined;
+    name?: string | undefined;
+    description?: string | undefined;
+    algorithmItems?: UpdateAlgorithmItem[] | undefined;
 }
 
 export interface UserInfo {
