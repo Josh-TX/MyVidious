@@ -52,4 +52,27 @@ public static class Helpers
             }
         }
     }
+
+    public static IEnumerable<T> GetBackwardsInfiniteDistinctLoop<T>(IList<T> items, int startOffset)
+    {
+        HashSet<T> distinctItems = new HashSet<T>();
+        startOffset = startOffset % items.Count;
+        int currentIndex = startOffset;
+
+        while (true)
+        {
+            T currentItem = items[items.Count - 1 - currentIndex]; //this is the only difference with GetInfiniteDistinctLoop()
+            if (!distinctItems.Contains(currentItem))
+            {
+                distinctItems.Add(currentItem);
+                yield return currentItem;
+            }
+
+            currentIndex = (currentIndex + 1) % items.Count;
+            if (currentIndex == startOffset)
+            {
+                yield break;
+            }
+        }
+    }
 }

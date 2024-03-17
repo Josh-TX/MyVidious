@@ -67,9 +67,10 @@
     <Build Include="Tables\ChannelGroup.sql" />
     <Build Include="Tables\ChannelGroupItem.sql" />
     <Build Include="Tables\Video.sql" />
-    <Build Include="Procs\GetAlgorithmVideos.sql" />
+    <Build Include="Procs\GetRecentAlgorithmVideos.sql" />
     <Build Include="IdentitySchema.sql" />
     <Build Include="Views\ChannelVideoCount.sql" />
     <Build Include="Views\AlgorithmItemInfo.sql" />
+    <Build Include="Procs\GetRandomAlgorithmVideos.sql" />
   </ItemGroup>
 </Project>

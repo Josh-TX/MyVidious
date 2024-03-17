@@ -4,14 +4,19 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using MyVidious.Access;
 using MyVidious.Background;
 using MyVidious.Data;
 using MyVidious.Utilities;
 using System.Net;
+using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
+services.Configure<AppSettings>(builder.Configuration);
+services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value); //make AppSettings injectable instead of just IOptions<AppSettings>
 services.AddControllers();
 services.AddHttpClient();
 
@@ -33,7 +38,7 @@ services.AddAuthentication(defaultScheme: CookieAuthenticationDefaults.Authentic
     });
 services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminPolicy", policy => policy.RequireUserName("admin"));
+    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("admin"));
 });
 
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
@@ -53,7 +58,11 @@ services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 services.AddScoped<IPScopedCache>();
 services.AddScoped<GlobalCache>();
 services.AddScoped<AlgorithmAccess>();
-services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+services.AddScoped<ImageUrlUtility>();
+
+services.AddSingleton<IProxyConfigProvider, CustomProxyConfigProvider>();
+services.AddReverseProxy();
+
 services.AddRazorPages();
 services.AddSwaggerGen(options =>
 {
@@ -64,10 +73,10 @@ services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+
 app.MapControllers();
 app.UseDeveloperExceptionPage();
 app.UseSwagger();
-//app.MapGet("/user", (ClaimsPrincipal user) => $"hello {user.Identity!.Name}").RequireAuthorization();
 app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious API V1"));
 app.MapReverseProxy();
 app.Run();

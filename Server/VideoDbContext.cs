@@ -29,9 +29,14 @@ public class VideoDbContext : DbContext
 
     //PROCS
     private DbSet<AlgorithmVideoEntity> _algorithmVideos { get; set; }
-    public List<AlgorithmVideoEntity> GetAlgorithmVideos(int algorithmId, int take)
+    public List<AlgorithmVideoEntity> GetRandomAlgorithmVideos(int algorithmId, int take)
     {
-        var results = _algorithmVideos.FromSqlRaw("EXEC GetAlgorithmVideos " + algorithmId + ", " + take).ToList();
+        var results = _algorithmVideos.FromSqlRaw($"EXEC GetRandomAlgorithmVideos {algorithmId}, {take}").ToList();
+        return results;
+    }
+    public List<AlgorithmVideoEntity> GetRecentAlgorithmVideos(int algorithmId, int take)
+    {
+        var results = _algorithmVideos.FromSqlRaw($"EXEC GetRecentAlgorithmVideos {algorithmId}, {take}, 3").ToList();
         return results;
     }
 

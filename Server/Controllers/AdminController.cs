@@ -257,6 +257,10 @@ namespace MyVidious.Controllers
         [ProducesResponseType(typeof(string), 400, "text/plain")]
         public async Task<IActionResult> CreateUser([FromBody] CreateAccountRequest request)
         {
+            if (request.Username.ToLower() == "admin")
+            {
+                return BadRequest("Username admin is not allowed");//since /admin is reserved for the admin interface
+            }
             var existingUser = await _userManager.FindByNameAsync(request.Username);
             if (existingUser != null)
             {

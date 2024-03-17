@@ -17,7 +17,7 @@ public class VideoObject
     public string AuthorUrl { get; set; }
     public bool AuthorVerified { get; set; }
 
-    public IEnumerable<VideoThumbnail> VideoThumbnails { get; set; }
+    public List<VideoThumbnail> VideoThumbnails { get; set; }
     public string Description { get; set; }
     public string DescriptionHtml { get; set; }
 

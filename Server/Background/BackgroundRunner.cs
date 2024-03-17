@@ -4,6 +4,7 @@ using MyVidious.Access;
 using MyVidious.Data;
 using MyVidious.Models;
 using MyVidious.Models.Invidious;
+using MyVidious.Utilities;
 
 namespace MyVidious.Background; 
 
@@ -11,11 +12,13 @@ public class BackgroundRunner : BackgroundService
 {
     private InvidiousAPIAccess _invidiousAPIAccess;
     private IServiceScopeFactory _serviceScopeFactory;
+    private AppSettings _appSettings;
 
-    public BackgroundRunner(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess)
+    public BackgroundRunner(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings)
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _serviceScopeFactory = serviceScopeFactory;
+        _appSettings = appSettings;
     }
 
     private readonly PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
@@ -96,7 +99,7 @@ public class BackgroundRunner : BackgroundService
             }
             channel.DateLastScraped = DateTime.Now;
             videoDbContext.SaveChanges();
-
+            await AddToMeilisearch(videosToAdd);
             request.Continuation = response.Continuation;
             if (request.Continuation == null || (existingUniqueIds.Any() && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
             {
@@ -117,7 +120,7 @@ public class BackgroundRunner : BackgroundService
             ChannelHandle = z.Channel.Handle,
             ChannelName = z.Channel.Name,
         });
-        MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "aSampleMasterKey");
+        MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "aSampleMasterKey");
         var index = client.Index("videos");
         await index.UpdateSearchableAttributesAsync(new[] { "Title", "ChannelName", "ChannelHandle", "Description" });
         await index.AddDocumentsAsync(meilisearchVideos);
@@ -125,7 +128,8 @@ public class BackgroundRunner : BackgroundService
 
     private VideoEntity TranslateToEntity(VideoObject videoObject)
     {
-        var thumbnailsJson = System.Text.Json.JsonSerializer.Serialize(videoObject.VideoThumbnails);
+        var videoThumnails = videoObject.VideoThumbnails.Select(z => ImageUrlUtility.MakeUrlRelative(z, _appSettings.InvidiousUrl));
+        var thumbnailsJson = System.Text.Json.JsonSerializer.Serialize(videoThumnails);
         return new VideoEntity
         {
             Title = videoObject.Title,

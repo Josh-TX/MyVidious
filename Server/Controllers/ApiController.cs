@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using MyVidious.Models;
 using MyVidious.Access;
 using MyVidious.Data;
 using Microsoft.EntityFrameworkCore;
 using Meilisearch;
 using MyVidious.Models.Invidious;
+using MyVidious.Utilities;
 
 namespace MyVidious.Controllers;
 
@@ -15,12 +15,22 @@ public class ApiController : Controller
     private InvidiousAPIAccess _invidiousAPIAccess;
     private VideoDbContext _videoDbContext;
     private AlgorithmAccess _algorithmAccess;
+    private ImageUrlUtility _imageUrlUtility;
+    private AppSettings _appSettings;
 
-    public ApiController(InvidiousAPIAccess invidiousAPIAccess, VideoDbContext videoDbContext, AlgorithmAccess algorithmAccess)
+    public ApiController(
+        InvidiousAPIAccess invidiousAPIAccess, 
+        VideoDbContext videoDbContext, 
+        AlgorithmAccess algorithmAccess, 
+        ImageUrlUtility imageUrlUtility,
+        AppSettings appSettings
+        )
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _videoDbContext = videoDbContext;
         _algorithmAccess = algorithmAccess;
+        _imageUrlUtility = imageUrlUtility;
+        _appSettings = appSettings;
     }
 
     [Route("{username}/{algorithm}/api/v1/videos/{videoId}")]
@@ -28,7 +38,8 @@ public class ApiController : Controller
     public async Task<VideoResponse> GetVideo([FromRoute] string username, [FromRoute] string algorithm, [FromRoute] string videoId)
     {
         var videoResponse = await _invidiousAPIAccess.GetVideo(videoId);
-        var recommendedVideos = _algorithmAccess.GetAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos.Count());
+        videoResponse.VideoThumbnails = videoResponse.VideoThumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+        var recommendedVideos = _algorithmAccess.GetRandomAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos.Count());
         videoResponse.RecommendedVideos = recommendedVideos;
         return videoResponse;
     }
@@ -37,18 +48,18 @@ public class ApiController : Controller
     [HttpGet]
     public async Task<IActionResult> GetSearchResults([FromQuery] SearchRequest request)
     {
-        //MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
-        //var index = client.Index("videos");
-        //var searchable = await index.SearchAsync<VideoMeilisearch>(request.Q, new SearchQuery
-        //{ 
-        //    HitsPerPage = 20,
-        //    Page = request.Page.HasValue ? request.Page.Value : 1
-        //});
-        //var videoIds = searchable.Hits.Select(z => z.Id).ToList();
-        //var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
-        //var searchResultsBase = videos.Select(TranslateToSearchResponse);
-        var searchResultsBase = await _invidiousAPIAccess.Search(request)!;
-        
+        MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "masterKey");
+        var index = client.Index("videos");
+        var searchable = await index.SearchAsync<VideoMeilisearch>(request.Q, new SearchQuery
+        {
+            HitsPerPage = 20,
+            Page = request.Page.HasValue ? request.Page.Value : 1
+        });
+        var videoIds = searchable.Hits.Select(z => z.Id).ToList();
+        var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
+        var searchResultsBase = videos.Select(TranslateToSearchResponse);
+        //var searchResultsBase = await _invidiousAPIAccess.Search(request)!;
+
         //System.Text.Json will only serialize properties on the base type.
         //but if we cast them to an object type, it'll serialize all properties on the underlying type
         return Ok(searchResultsBase.Select(z => (object)z));
@@ -61,6 +72,20 @@ public class ApiController : Controller
         return await _invidiousAPIAccess.GetChannel(channelId);
     }
 
+    [Route("{username}/{algorithm}/api/v1/trending")]
+    [HttpGet]
+    public IEnumerable<VideoObject> GetTrending([FromRoute] string username, [FromRoute] string algorithm)
+    {
+        return _algorithmAccess.GetTrendingAlgorithmVideos(username, algorithm, 60);
+    }
+
+    [Route("{username}/{algorithm}/api/v1/popular")]
+    [HttpGet]
+    public IEnumerable<PopularVideo> GetPopular([FromRoute] string username, [FromRoute] string algorithm)
+    {
+        return _algorithmAccess.GetPopularAlgorithmVideos(username, algorithm, 60);
+    }
+
     [Route("{username}/{algorithm}/api/v1/channels/{channelId}/videos")]
     [HttpGet]
     public async Task<ChannelVideosResponse> GetChannelVideos([FromRoute] string channelId, [FromQuery] ChannelVideosRequest request)
@@ -71,6 +96,7 @@ public class ApiController : Controller
     private SearchResponse_Video TranslateToSearchResponse(VideoEntity video)
     {
         var thumbnails = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList();
+        thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
         return new SearchResponse_Video
         {
             Type = "video",

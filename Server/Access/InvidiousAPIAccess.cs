@@ -6,11 +6,12 @@ namespace MyVidious.Access;
 public class InvidiousAPIAccess
 {
     private readonly HttpClient _httpClient;
-    private const string baseUrl = "http://192.168.20.29:3000/"; // URL of the target API
+    private readonly string baseUrl; // URL of the target API
 
-    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory)
+    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _httpClient = httpClientFactory.CreateClient();
+        baseUrl = configuration.GetValue<string>("InvidiousUrl")!;
     }
 
     public async Task<VideoResponse> GetVideo(string videoId)
