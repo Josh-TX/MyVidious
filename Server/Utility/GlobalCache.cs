@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using System.Security.Policy;
 
 namespace MyVidious.Utilities;
 
@@ -45,6 +46,24 @@ public class GlobalCache
         _cache.Set(key, videoIds, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(40)
+        });
+    }
+
+    public List<string>? GetInvidiousUrls()
+    {
+        var key = CacheConstants.InvidiousUrls;
+        if (_cache.TryGetValue<List<string>>(key, out var urls))
+        {
+            return urls;
+        }
+        return null;
+    }
+    public void SetInvidiousUrls(List<string> urls)
+    {
+        var key = CacheConstants.InvidiousUrls;
+        _cache.Set(key, urls, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
         });
     }
 }

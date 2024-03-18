@@ -7,4 +7,5 @@ public static class CacheConstants
     public const string RandomAlgorithmVideoIds = "ran";
     public const string RecentAlgorithmVideoIds = "rec";
     public const string AlgorithmName = "s";
+    public const string InvidiousUrls = "iu";
 }

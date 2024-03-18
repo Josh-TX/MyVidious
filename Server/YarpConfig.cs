@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Primitives;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.LoadBalancing;
 
 public class CustomProxyConfigProvider : IProxyConfigProvider
 {
@@ -36,7 +37,8 @@ public class CustomProxyConfigProvider : IProxyConfigProvider
                 Destinations = new Dictionary<string, DestinationConfig>
                 {
                     { "destination1", new DestinationConfig { Address = invidiousUrl! } },
-                }
+                },
+                LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin
             }
         };
 

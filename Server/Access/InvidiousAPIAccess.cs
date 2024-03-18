@@ -8,10 +8,10 @@ public class InvidiousAPIAccess
     private readonly HttpClient _httpClient;
     private readonly string baseUrl; // URL of the target API
 
-    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, AppSettings appSettings)
     {
         _httpClient = httpClientFactory.CreateClient();
-        baseUrl = configuration.GetValue<string>("InvidiousUrl")!;
+        baseUrl = appSettings.InvidiousUrl;
     }
 
     public async Task<VideoResponse> GetVideo(string videoId)

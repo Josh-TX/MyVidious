@@ -10,6 +10,9 @@ using MyVidious.Access;
 using MyVidious.Background;
 using MyVidious.Data;
 using MyVidious.Utilities;
+using Quartz;
+using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
 using System.Net;
 using Yarp.ReverseProxy.Configuration;
 
@@ -71,6 +74,17 @@ services.AddSwaggerGen(options =>
     options.EnableAnnotations();
 });
 
+services.AddQuartz(quartz =>
+{
+    var jobKey = JobKey.Create(nameof(QuartzJob));
+    quartz.AddJob<QuartzJob>(jobKey);
+    quartz.AddTrigger(trigger => trigger.ForJob(jobKey).StartNow());
+    quartz.AddTrigger(trigger => 
+        trigger.ForJob(jobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(10)).RepeatForever())
+    );
+});
+services.AddQuartzHostedService();
+
 var app = builder.Build();
 
 
@@ -79,6 +93,7 @@ app.UseDeveloperExceptionPage();
 app.UseSwagger();
 app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious API V1"));
 app.MapReverseProxy();
+
 app.Run();
 
 
@@ -93,3 +108,17 @@ static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirecto
         }
         return existingRedirector(context);
     };
+
+
+public class DebugOutputTraceListener : TraceListener
+{
+    public override void Write(string message)
+    {
+        Debug.Write(message);
+    }
+
+    public override void WriteLine(string message)
+    {
+        Debug.WriteLine(message);
+    }
+}
