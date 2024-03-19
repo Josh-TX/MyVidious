@@ -51,8 +51,8 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 });
 
 
-services.AddDbContext<VideoDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionString"]));
-services.AddDbContext<IdentityDbContext>(options => options.UseSqlServer(builder.Configuration["ConnectionString"]));
+services.AddDbContext<VideoDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
+services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
 services.AddMemoryCache();
 services.AddHttpContextAccessor();
 
