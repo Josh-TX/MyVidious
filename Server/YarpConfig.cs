@@ -28,7 +28,6 @@ public class CustomProxyConfigProvider : IProxyConfigProvider
         };
 
         var routeConfigs = new[] { routeConfig };
-        var invidiousUrl = config.GetValue<string>("InvidiousUrl");
         var clusterConfigs = new[]
         {
             new ClusterConfig
@@ -36,7 +35,6 @@ public class CustomProxyConfigProvider : IProxyConfigProvider
                 ClusterId = "cluster1",
                 Destinations = new Dictionary<string, DestinationConfig>
                 {
-                    { "destination1", new DestinationConfig { Address = invidiousUrl! } },
                 },
                 LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin
             }

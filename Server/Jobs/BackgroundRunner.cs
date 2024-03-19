@@ -13,8 +13,9 @@ public class BackgroundRunner : BackgroundService
     private InvidiousAPIAccess _invidiousAPIAccess;
     private IServiceScopeFactory _serviceScopeFactory;
     private AppSettings _appSettings;
+    private InvidiousUrlsAccess _invidiousUrlsAccess;
 
-    public BackgroundRunner(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings)
+    public BackgroundRunner(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _serviceScopeFactory = serviceScopeFactory;
@@ -128,7 +129,7 @@ public class BackgroundRunner : BackgroundService
 
     private VideoEntity TranslateToEntity(VideoObject videoObject)
     {
-        var videoThumnails = videoObject.VideoThumbnails.Select(z => ImageUrlUtility.MakeUrlRelative(z, _appSettings.InvidiousUrl));
+        var videoThumnails = videoObject.VideoThumbnails.Select(MakeUrlRelative);
         var thumbnailsJson = System.Text.Json.JsonSerializer.Serialize(videoThumnails);
         return new VideoEntity
         {
@@ -151,5 +152,19 @@ public class BackgroundRunner : BackgroundService
             Premium = videoObject.Premium,
             IsUpcoming = videoObject.IsUpcoming
         };
+    }
+
+    /// <summary>
+    /// Should be called prior to storing an image URL
+    /// </summary>
+    private VideoThumbnail MakeUrlRelative(VideoThumbnail videoThumbnail)
+    {
+        var urlPool = _invidiousUrlsAccess.GetAllInvidiousUrls();
+        var match = urlPool.FirstOrDefault(url => videoThumbnail.Url.StartsWith(url));
+        if (match != null)
+        {
+            videoThumbnail.Url = videoThumbnail.Url.Substring(match.Length);
+        }
+        return videoThumbnail;
     }
 }

@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Net;
 using Yarp.ReverseProxy.Configuration;
+using Quartz.Impl.Matchers;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -55,7 +56,7 @@ services.AddDbContext<IdentityDbContext>(options => options.UseSqlServer(builder
 services.AddMemoryCache();
 services.AddHttpContextAccessor();
 
-services.AddHostedService<BackgroundRunner>();
+//services.AddHostedService<BackgroundRunner>();
 services.AddSingleton<InvidiousAPIAccess>();
 services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 services.AddScoped<IPScopedCache>();
@@ -63,6 +64,7 @@ services.AddScoped<GlobalCache>();
 services.AddScoped<AlgorithmAccess>();
 services.AddScoped<ImageUrlUtility>();
 
+services.AddSingleton<CustomProxyConfigProvider>();
 services.AddSingleton<IProxyConfigProvider, CustomProxyConfigProvider>();
 services.AddReverseProxy();
 
@@ -74,13 +76,14 @@ services.AddSwaggerGen(options =>
     options.EnableAnnotations();
 });
 
+services.AddSingleton<InvidiousUrlsAccess>();
+
 services.AddQuartz(quartz =>
 {
-    var jobKey = JobKey.Create(nameof(QuartzJob));
-    quartz.AddJob<QuartzJob>(jobKey);
-    quartz.AddTrigger(trigger => trigger.ForJob(jobKey).StartNow());
+    var jobKey = JobKey.Create(nameof(InvidiousUrlsAccess));
+    quartz.AddJob<InvidiousUrlsAccess>(jobKey);
     quartz.AddTrigger(trigger => 
-        trigger.ForJob(jobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(10)).RepeatForever())
+        trigger.ForJob(jobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
     );
 });
 services.AddQuartzHostedService();

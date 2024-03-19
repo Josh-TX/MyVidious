@@ -1,4 +1,5 @@
-﻿using MyVidious.Models.Invidious;
+﻿using MyVidious.Access;
+using MyVidious.Models.Invidious;
 
 namespace MyVidious.Utilities;
 
@@ -8,24 +9,12 @@ public class ImageUrlUtility
     private readonly bool _proxyImages;
     private readonly string _myVidiousUrl;
 
-    public ImageUrlUtility(AppSettings appSettings, IHttpContextAccessor httpContextAccessor)
+    public ImageUrlUtility(AppSettings appSettings, IHttpContextAccessor httpContextAccessor, InvidiousUrlsAccess invidiousUrlsAccess)
     {
-        _invidiousUrl = appSettings.InvidiousUrl.TrimEnd('/');
+        _invidiousUrl = invidiousUrlsAccess.GetInvidiousUrl();
         _proxyImages = appSettings.ProxyImages;
         var request = httpContextAccessor.HttpContext!.Request;
         _myVidiousUrl = $"https://{request.Host}".TrimEnd('/');
-    }
-
-    /// <summary>
-    /// Should be called prior to storing an image URL
-    /// </summary>
-    public static VideoThumbnail MakeUrlRelative(VideoThumbnail videoThumbnail, string invidiousUrl)
-    {
-        if (videoThumbnail.Url.StartsWith(invidiousUrl))
-        {
-            videoThumbnail.Url = videoThumbnail.Url.Substring(invidiousUrl.Length);
-        }
-        return videoThumbnail;
     }
 
 

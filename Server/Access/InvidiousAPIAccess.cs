@@ -6,17 +6,17 @@ namespace MyVidious.Access;
 public class InvidiousAPIAccess
 {
     private readonly HttpClient _httpClient;
-    private readonly string baseUrl; // URL of the target API
+    private readonly InvidiousUrlsAccess _invidiousUrlsAccess;
 
-    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, AppSettings appSettings)
+    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
     {
         _httpClient = httpClientFactory.CreateClient();
-        baseUrl = appSettings.InvidiousUrl;
+        _invidiousUrlsAccess = invidiousUrlsAccess;
     }
 
     public async Task<VideoResponse> GetVideo(string videoId)
     {
-        var url = baseUrl + "api/v1/videos/" + videoId;
+        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/videos/" + videoId;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -63,7 +63,7 @@ public class InvidiousAPIAccess
             queryDict.Add("region", request.Region);
         }
         var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("", queryDict);
-        var url = baseUrl + "api/v1/search" + queryParams;
+        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/search" + queryParams;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -79,7 +79,7 @@ public class InvidiousAPIAccess
 
     public async Task<ChannelResponse> GetChannel(string channelId)
     {
-        var url = baseUrl + "api/v1/channels/" + channelId;
+        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/channels/" + channelId;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -102,7 +102,7 @@ public class InvidiousAPIAccess
             queryDict.Add("continuation", request.Continuation);
         }
         var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("", queryDict);
-        var url = baseUrl + "api/v1/channels/" + channelId + "/videos" + queryParams;
+        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/channels/" + channelId + "/videos" + queryParams;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
