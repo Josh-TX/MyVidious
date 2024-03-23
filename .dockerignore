@@ -1,0 +1,8 @@
+**/node_modules
+UI/.angular
+UI/.vscode
+Server/wwwroot
+Server/.vscode
+Server/bin
+Server/data
+Server/obj

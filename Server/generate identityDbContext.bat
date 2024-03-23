@@ -1,0 +1,1 @@
+dotnet ef DbContext script --context IdentityDbContext -o ../Database/sql/identityDbContext.sql

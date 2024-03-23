@@ -731,6 +731,118 @@ export class Client {
     }
 
     /**
+     * @return Success
+     */
+    getTrending(username: string, algorithm: string): Observable<VideoObject[]> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/trending";
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (algorithm === undefined || algorithm === null)
+            throw new Error("The parameter 'algorithm' must be defined.");
+        url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetTrending(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetTrending(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<VideoObject[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<VideoObject[]>;
+        }));
+    }
+
+    protected processGetTrending(response: HttpResponseBase): Observable<VideoObject[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as VideoObject[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return Success
+     */
+    getPopular(username: string, algorithm: string): Observable<PopularVideo[]> {
+        let url_ = this.baseUrl + "/{username}/{algorithm}/api/v1/popular";
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (algorithm === undefined || algorithm === null)
+            throw new Error("The parameter 'algorithm' must be defined.");
+        url_ = url_.replace("{algorithm}", encodeURIComponent("" + algorithm));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetPopular(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetPopular(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<PopularVideo[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<PopularVideo[]>;
+        }));
+    }
+
+    protected processGetPopular(response: HttpResponseBase): Observable<PopularVideo[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PopularVideo[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @param sort_by (optional) 
      * @param continuation (optional) 
      * @return Success
@@ -790,6 +902,106 @@ export class Client {
             let result200: any = null;
             result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ChannelVideosResponse;
             return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return Success
+     */
+    getRootPage(): Observable<void> {
+        let url_ = this.baseUrl + "/";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetRootPage(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetRootPage(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processGetRootPage(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
+     * @return Success
+     */
+    viewAlgorithm(username: string, algorithmName: string): Observable<void> {
+        let url_ = this.baseUrl + "/{username}/{algorithmName}";
+        if (username === undefined || username === null)
+            throw new Error("The parameter 'username' must be defined.");
+        url_ = url_.replace("{username}", encodeURIComponent("" + username));
+        if (algorithmName === undefined || algorithmName === null)
+            throw new Error("The parameter 'algorithmName' must be defined.");
+        url_ = url_.replace("{algorithmName}", encodeURIComponent("" + algorithmName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processViewAlgorithm(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processViewAlgorithm(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<void>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<void>;
+        }));
+    }
+
+    protected processViewAlgorithm(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return _observableOf(null as any);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -881,7 +1093,8 @@ export interface LoadAlgorithmItem {
 
 export interface LoadAlgorithmResult {
     algorithmId?: number | undefined;
-    name?: string | undefined;
+    username?: string | undefined;
+    algorithmName?: string | undefined;
     description?: string | undefined;
     algorithmItems?: LoadAlgorithmItem[] | undefined;
 }
@@ -889,6 +1102,20 @@ export interface LoadAlgorithmResult {
 export interface LoginRequest {
     username?: string | undefined;
     password?: string | undefined;
+}
+
+export interface PopularVideo {
+    type?: string | undefined;
+    title?: string | undefined;
+    videoId?: string | undefined;
+    videoThumbnails?: VideoThumbnail[] | undefined;
+    lengthSeconds?: number;
+    viewCount?: number;
+    author?: string | undefined;
+    authorId?: string | undefined;
+    authorUrl?: string | undefined;
+    published?: number;
+    publishedText?: string | undefined;
 }
 
 export interface RecommendedVideo {

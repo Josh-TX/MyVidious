@@ -47,7 +47,7 @@ export class ManageAlgorithmComponent {
             if (params["id"] && parseInt(params["id"])){
                 this.algorithmId = parseInt(params["id"]);
                 this.client.getAlgorithm(params["id"]).subscribe(result => {
-                    this.name = result.name!;
+                    this.name = result.algorithmName!;
                     this.originalName = this.name;
                     this.description = result.description!;
                     this.items = result.algorithmItems!.map(z => ({

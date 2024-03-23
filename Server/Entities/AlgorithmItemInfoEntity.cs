@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyVidious.Data;
 
-[Table("vw_AlgorithmItemInfo")]
 public class AlgorithmItemInfoEntity
 {
     public int AlgorithmId { get; set; }

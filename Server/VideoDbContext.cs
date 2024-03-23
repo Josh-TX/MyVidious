@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Xml;
 
 namespace MyVidious.Data;
 
@@ -11,12 +13,15 @@ public class VideoDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AlgorithmVideoEntity>().HasNoKey();
-        modelBuilder.Entity<ChannelVideoCountEntity>().HasNoKey();
-        modelBuilder.Entity<AlgorithmItemInfoEntity>().HasNoKey();
+        modelBuilder.Entity<ChannelGroupItemEntity>().HasKey(e => new { e.ChannelGroupId, e.ChannelId });
+        modelBuilder.Entity<AlgorithmVideoEntity>().ToView(null).HasNoKey();
+        modelBuilder.Entity<ChannelVideoCountEntity>().ToView("vw_channel_video_count").HasNoKey();
+        modelBuilder.Entity<AlgorithmItemInfoEntity>().ToView("vw_algorithm_item_info").HasNoKey();
     }
 
     public DbSet<ChannelEntity> Channels { get; set; }
+    public DbSet<ChannelGroupEntity> ChannelGroups { get; set; }
+    public DbSet<ChannelGroupItemEntity> ChannelGroupItems { get; set; }
     public DbSet<VideoEntity> Videos { get; set; }
     public DbSet<AlgorithmEntity> Algorithms { get; set; }
 
@@ -27,17 +32,21 @@ public class VideoDbContext : DbContext
     private DbSet<AlgorithmItemInfoEntity> _algorithmItemInfos { get; set; }
     public IQueryable<AlgorithmItemInfoEntity> AlgorithmItemInfos { get => _algorithmItemInfos.AsQueryable(); }
 
-    //PROCS
-    private DbSet<AlgorithmVideoEntity> _algorithmVideos { get; set; }
+
     public List<AlgorithmVideoEntity> GetRandomAlgorithmVideos(int algorithmId, int take)
     {
-        var results = _algorithmVideos.FromSqlRaw($"EXEC GetRandomAlgorithmVideos {algorithmId}, {take}").ToList();
+        var sql = File.ReadAllText(Directory.GetCurrentDirectory() + "/Scripts/RandomAlgorithmVideos.sql");
+        var results = this.Set<AlgorithmVideoEntity>()
+                       .FromSqlRaw(sql, algorithmId, take)
+                       .ToList();
         return results;
     }
     public List<AlgorithmVideoEntity> GetRecentAlgorithmVideos(int algorithmId, int take)
     {
-        var results = _algorithmVideos.FromSqlRaw($"EXEC GetRecentAlgorithmVideos {algorithmId}, {take}, 3").ToList();
+        var sql = File.ReadAllText(Directory.GetCurrentDirectory() + "/Scripts/RecentAlgorithmVideos.sql");
+        var results = this.Set<AlgorithmVideoEntity>()
+                       .FromSqlRaw(sql, algorithmId, take, 3)
+                       .ToList();
         return results;
     }
-
 }

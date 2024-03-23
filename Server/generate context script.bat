@@ -1,0 +1,1 @@
+dotnet ef DbContext script --context VideoDbContext -o ../Database/sql/videoDbContext.sql

@@ -289,6 +289,7 @@ namespace MyVidious.Controllers
                 await _roleManager.CreateAsync(role);
                 await _userManager.AddToRoleAsync(user, "admin");
             }
+            await SignInWithRoles(user, isAdmin);
             var userInfo = new UserInfo
             {
                 Username = user.UserName,
@@ -307,18 +308,9 @@ namespace MyVidious.Controllers
 
             if (user != null && await _userManager.CheckPasswordAsync(user, request.Password))
             {
-                var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
-                identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
-                identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
-
                 var roles = await _userManager.GetRolesAsync(user);
                 var isAdmin = roles.Any(z => z == "admin");
-                if (isAdmin)
-                {
-                    identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
-                }
-
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+                await SignInWithRoles(user, isAdmin);
                 var userInfo = new UserInfo
                 {
                     Username = user.UserName,
@@ -328,6 +320,19 @@ namespace MyVidious.Controllers
                 return Ok(userInfo);
             }
             return BadRequest("Invalid Username or Password");
+        }
+
+        private async Task<bool> SignInWithRoles(IdentityUser user, bool isAdmin)
+        {
+            var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+            identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
+            if (isAdmin)
+            {
+                identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
+            }
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            return isAdmin;
         }
 
         [HttpPost("api/logout")]

@@ -5,24 +5,29 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using MyVidious.Access;
 using MyVidious.Background;
 using MyVidious.Data;
 using MyVidious.Utilities;
 using Quartz;
-using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Net;
 using Yarp.ReverseProxy.Configuration;
-using Quartz.Impl.Matchers;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 services.Configure<AppSettings>(builder.Configuration);
 services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value); //make AppSettings injectable instead of just IOptions<AppSettings>
 services.AddControllers();
-services.AddHttpClient();
+services.AddHttpClient().ConfigureHttpClientDefaults((builder) =>
+{
+    builder.ConfigurePrimaryHttpMessageHandler(proovider =>
+    {
+        var handler = new HttpClientHandler();
+        handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+        return handler;
+    });
+});
 
 services.AddIdentityCore<IdentityUser>(options => {
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
@@ -51,12 +56,18 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 });
 
 
-services.AddDbContext<VideoDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
+services.AddDbContext<VideoDbContext>(options =>
+    options
+        .UseNpgsql(builder.Configuration["ConnectionString"])
+        .UseSnakeCaseNamingConvention()
+);
+Console.WriteLine("CURRENT DIRECTORY");
+Console.WriteLine(Directory.GetCurrentDirectory());
+
+
 services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
 services.AddMemoryCache();
 services.AddHttpContextAccessor();
-
-//services.AddHostedService<BackgroundRunner>();
 services.AddSingleton<InvidiousAPIAccess>();
 services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 services.AddScoped<IPScopedCache>();
@@ -65,7 +76,7 @@ services.AddScoped<AlgorithmAccess>();
 services.AddScoped<ImageUrlUtility>();
 
 services.AddSingleton<CustomProxyConfigProvider>();
-services.AddSingleton<IProxyConfigProvider, CustomProxyConfigProvider>();
+services.AddSingleton<IProxyConfigProvider>((provider) => provider.GetRequiredService<CustomProxyConfigProvider>());
 services.AddReverseProxy();
 
 services.AddRazorPages();
@@ -80,10 +91,17 @@ services.AddSingleton<InvidiousUrlsAccess>();
 
 services.AddQuartz(quartz =>
 {
-    var jobKey = JobKey.Create(nameof(InvidiousUrlsAccess));
-    quartz.AddJob<InvidiousUrlsAccess>(jobKey);
+    var urlJobKey = JobKey.Create(nameof(InvidiousUrlsAccess));
+    quartz.AddJob<InvidiousUrlsAccess>(urlJobKey);
     quartz.AddTrigger(trigger => 
-        trigger.ForJob(jobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
+        trigger.ForJob(urlJobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
+    );
+    var videoFetchJobKey = JobKey.Create(nameof(VideoFetchJob));
+    quartz.AddJob<VideoFetchJob>(videoFetchJobKey, options => options.DisallowConcurrentExecution());
+    quartz.AddTrigger(trigger =>
+        trigger.ForJob(videoFetchJobKey)
+        .StartAt(DateTimeOffset.UtcNow.AddSeconds(10))
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
     );
 });
 services.AddQuartzHostedService();

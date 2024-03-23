@@ -3,8 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyVidious.Data;
 
-/// 
-[Table("Video")]
+[Table("video")]
 public class VideoEntity
 {
     [Key]

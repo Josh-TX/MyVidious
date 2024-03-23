@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyVidious.Data;
 
-[Table("AlgorithmItem")]
+[Table("algorithm_item")]
 public class AlgorithmItemEntity
 {
     [Key]

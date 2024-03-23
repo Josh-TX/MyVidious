@@ -35,6 +35,7 @@ public class CustomProxyConfigProvider : IProxyConfigProvider
                 ClusterId = "cluster1",
                 Destinations = new Dictionary<string, DestinationConfig>
                 {
+                    { "destination1", new DestinationConfig { Address = "https://invidious.fdn.fr" } },
                 },
                 LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin
             }
@@ -53,7 +54,7 @@ public class CustomProxyConfigProvider : IProxyConfigProvider
     {
         var oldConfig = _config;
         _config = new CustomMemoryConfig(routes, clusters);
-        oldConfig.SignalChange();
+         oldConfig.SignalChange();
     }
 
     private class CustomMemoryConfig : IProxyConfig

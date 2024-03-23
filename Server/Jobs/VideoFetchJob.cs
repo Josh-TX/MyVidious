@@ -5,38 +5,29 @@ using MyVidious.Data;
 using MyVidious.Models;
 using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
+using Quartz;
 
 namespace MyVidious.Background; 
 
-public class BackgroundRunner : BackgroundService
+public class VideoFetchJob : IJob
 {
     private InvidiousAPIAccess _invidiousAPIAccess;
     private IServiceScopeFactory _serviceScopeFactory;
     private AppSettings _appSettings;
     private InvidiousUrlsAccess _invidiousUrlsAccess;
 
-    public BackgroundRunner(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
+    public VideoFetchJob(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _serviceScopeFactory = serviceScopeFactory;
         _appSettings = appSettings;
+        _invidiousUrlsAccess = invidiousUrlsAccess;
     }
 
-    private readonly PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    async Task IJob.Execute(IJobExecutionContext context)
     {
-        try
-        {
-            do
-            {
-                await UpdateChannelVideos(stoppingToken);
-            }
-            while (await _timer.WaitForNextTickAsync(stoppingToken) && !stoppingToken.IsCancellationRequested);
-        } catch (Exception)
-        {
-
-        }
+        System.Diagnostics.Debug.WriteLine("VideoFetchJob: " + DateTime.Now);
+        await UpdateChannelVideos(context.CancellationToken);
     }
 
     private async Task UpdateChannelVideos(CancellationToken stoppingToken)
@@ -54,7 +45,7 @@ public class BackgroundRunner : BackgroundService
             }
         }
 
-        var cutoff = DateTime.Now.AddHours(-48);
+        var cutoff = DateTime.UtcNow.AddHours(-48);
         var channelToUpdate = videoDbContext.Channels.Where(z => z.DateLastScraped < cutoff).ToList();
         foreach (var channel in channelToUpdate)
         {
@@ -82,7 +73,7 @@ public class BackgroundRunner : BackgroundService
             catch (Exception)
             {
                 channel.ScrapeFailureCount++;
-                channel.DateLastScraped = DateTime.Now;
+                channel.DateLastScraped = DateTime.UtcNow;
                 videoDbContext.SaveChanges();
                 return;
             }
@@ -98,7 +89,7 @@ public class BackgroundRunner : BackgroundService
             {
                 channel.ScrapedToOldest = true;
             }
-            channel.DateLastScraped = DateTime.Now;
+            channel.DateLastScraped = DateTime.UtcNow;
             videoDbContext.SaveChanges();
             await AddToMeilisearch(videosToAdd);
             request.Continuation = response.Continuation;
@@ -113,18 +104,24 @@ public class BackgroundRunner : BackgroundService
 
     private async Task AddToMeilisearch(List<VideoEntity> videoEntities)
     {
-        var meilisearchVideos = videoEntities.Select(z => new VideoMeilisearch
+        try
         {
-            Id = z.Id,
-            Title = z.Title,
-            Description = z.Description.Substring(0, Math.Min(500, z.Description.Length)),
-            ChannelHandle = z.Channel.Handle,
-            ChannelName = z.Channel.Name,
-        });
-        MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "aSampleMasterKey");
-        var index = client.Index("videos");
-        await index.UpdateSearchableAttributesAsync(new[] { "Title", "ChannelName", "ChannelHandle", "Description" });
-        await index.AddDocumentsAsync(meilisearchVideos);
+            var meilisearchVideos = videoEntities.Select(z => new VideoMeilisearch
+            {
+                Id = z.Id,
+                Title = z.Title,
+                Description = z.Description.Substring(0, Math.Min(200, z.Description.Length)),
+                ChannelHandle = z.Channel.Handle,
+                ChannelName = z.Channel.Name,
+            });
+            MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "aSampleMasterKey");
+            var index = client.Index("videos");
+            await index.UpdateSearchableAttributesAsync(new[] { "title", "channelname", "channelhandle", "description" });
+            await index.AddDocumentsAsync(meilisearchVideos);
+        } catch (Exception)
+        {
+
+        }
     }
 
     private VideoEntity TranslateToEntity(VideoObject videoObject)

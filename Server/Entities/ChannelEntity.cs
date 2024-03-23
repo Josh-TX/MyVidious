@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyVidious.Data;
 
-[Table("Channel")]
+[Table("channel")]
 public class ChannelEntity
 {
     [Key]
