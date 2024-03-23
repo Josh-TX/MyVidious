@@ -149,7 +149,7 @@ namespace MyVidious.Controllers
             {
                 return BadRequest("NewChannels contains duplicate UniqueIds");
             }
-            var username = User.FindFirst(ClaimTypes.Name).Value;
+            var username = User.FindFirst(ClaimTypes.Name)!.Value;
             var algorithm = request.AlgorithmId.HasValue
                 ? _videoDbContext.Algorithms.Include(z => z.AlgorithmItems).First(z => z.Id == request.AlgorithmId)
                 : new AlgorithmEntity()
@@ -157,13 +157,16 @@ namespace MyVidious.Controllers
                     Name = request.Name,
                     Username = username,
                 };
+            if (algorithm.Username != username)
+            {
+                return BadRequest("Algorithm belongs to a different user");
+            }
             if (!request.AlgorithmId.HasValue || algorithm.Name?.ToLower() != request.Name.ToLower())
             {
-                //todo: scope it to user
-                var nameConflicts = _videoDbContext.Algorithms.Where(z => z.Name == request.Name).Any();
+                var nameConflicts = _videoDbContext.Algorithms.Where(z => z.Name == request.Name && z.Username == username).Any();
                 if (nameConflicts)
                 {
-                    return BadRequest("Algorithm Name already taken");
+                    return BadRequest($"user {username} already has an Algorithm named {request.Name}");
                 }
             }
 
@@ -179,6 +182,7 @@ namespace MyVidious.Controllers
             }).ToList();
             _videoDbContext.Channels.AddRange(newChannelEntities);
             _videoDbContext.SaveChanges();//this should assign Ids to newChannelEntities
+
 
 
             if (!request.AlgorithmId.HasValue)

@@ -15,13 +15,20 @@ public class VideoFetchJob : IJob
     private IServiceScopeFactory _serviceScopeFactory;
     private AppSettings _appSettings;
     private InvidiousUrlsAccess _invidiousUrlsAccess;
+    private MeilisearchAccess _meilisearchAccess;
 
-    public VideoFetchJob(IServiceScopeFactory serviceScopeFactory, InvidiousAPIAccess invidiousAPIAccess, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
+    public VideoFetchJob(
+        IServiceScopeFactory serviceScopeFactory, 
+        InvidiousAPIAccess invidiousAPIAccess, 
+        AppSettings appSettings, 
+        InvidiousUrlsAccess invidiousUrlsAccess,
+        MeilisearchAccess meilisearchAccess)
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _serviceScopeFactory = serviceScopeFactory;
         _appSettings = appSettings;
         _invidiousUrlsAccess = invidiousUrlsAccess;
+        _meilisearchAccess = meilisearchAccess;
     }
 
     async Task IJob.Execute(IJobExecutionContext context)
@@ -91,36 +98,19 @@ public class VideoFetchJob : IJob
             }
             channel.DateLastScraped = DateTime.UtcNow;
             videoDbContext.SaveChanges();
-            await AddToMeilisearch(videosToAdd);
+            await _meilisearchAccess.AddVideos(videosToAdd.Select(z => new VideoMeilisearch
+            {
+                Id = z.Id,
+                Title = z.Title,
+                ChannelName = z.Channel.Name,
+                ChannelId = z.ChannelId
+            }));
             request.Continuation = response.Continuation;
             if (request.Continuation == null || (existingUniqueIds.Any() && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
             {
                 return;
             }
             await Task.Delay(5000);//throttle
-        }
-       
-    }
-
-    private async Task AddToMeilisearch(List<VideoEntity> videoEntities)
-    {
-        try
-        {
-            var meilisearchVideos = videoEntities.Select(z => new VideoMeilisearch
-            {
-                Id = z.Id,
-                Title = z.Title,
-                Description = z.Description.Substring(0, Math.Min(200, z.Description.Length)),
-                ChannelHandle = z.Channel.Handle,
-                ChannelName = z.Channel.Name,
-            });
-            MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "aSampleMasterKey");
-            var index = client.Index("videos");
-            await index.UpdateSearchableAttributesAsync(new[] { "title", "channelname", "channelhandle", "description" });
-            await index.AddDocumentsAsync(meilisearchVideos);
-        } catch (Exception)
-        {
-
         }
     }
 

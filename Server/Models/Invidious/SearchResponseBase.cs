@@ -79,7 +79,7 @@ public class SearchResponse_Channel : SearchResponseBase
     public string ChannelHandle { get; set; }
     public string Description { get; set; }
     public string DescriptionHtml { get; set; }
-    public string Author { get; set; }
+    public string Author { get; set; } 
     public string AuthorId { get; set; }
     public string AuthorUrl { get; set; }
     public IEnumerable<AuthorThumbnail> AuthorThumbnails {get;set;}

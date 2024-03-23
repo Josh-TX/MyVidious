@@ -69,6 +69,7 @@ services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(builder.Co
 services.AddMemoryCache();
 services.AddHttpContextAccessor();
 services.AddSingleton<InvidiousAPIAccess>();
+services.AddSingleton<MeilisearchAccess>();
 services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 services.AddScoped<IPScopedCache>();
 services.AddScoped<GlobalCache>();

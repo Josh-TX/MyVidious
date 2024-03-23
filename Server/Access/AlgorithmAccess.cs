@@ -62,6 +62,14 @@ public class AlgorithmAccess
         return nextVideoIds.Select(videoId => TranslateToVideoObject(videos.First(z => z.Id == videoId))).ToList();
     }
 
+    public IEnumerable<int> GetChannelIds(string username, string algorithmName)
+    {
+        var id = _getAlgorithmId(username, algorithmName)!.Value;
+        //this doesn't support channelGroups atm, but it should eventually
+        var channelIds = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id && z.ChannelId.HasValue).Select(z => z.ChannelId.Value).ToList();
+        return channelIds;
+    }
+
 
     private static Dictionary<(string, string), int?> _algorithmNameIdMap = new Dictionary<(string, string), int?>();
 

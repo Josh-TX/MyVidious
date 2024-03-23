@@ -11,6 +11,9 @@ public class VideoEntity
     public int Id { get; set; }
     public int ChannelId { get; set; }
     public string Title { get; set; }
+    /// <summary>
+    /// should match the VideoId of the invidious API
+    /// </summary>
     public string UniqueId { get; set; }
 
     public string Author { get; set; }

@@ -17,13 +17,15 @@ public class ApiController : Controller
     private AlgorithmAccess _algorithmAccess;
     private ImageUrlUtility _imageUrlUtility;
     private AppSettings _appSettings;
+    private MeilisearchAccess _meilisearchAccess;
 
     public ApiController(
         InvidiousAPIAccess invidiousAPIAccess, 
         VideoDbContext videoDbContext, 
         AlgorithmAccess algorithmAccess, 
         ImageUrlUtility imageUrlUtility,
-        AppSettings appSettings
+        AppSettings appSettings,
+        MeilisearchAccess meilisearchAccess
         )
     {
         _invidiousAPIAccess = invidiousAPIAccess;
@@ -31,6 +33,7 @@ public class ApiController : Controller
         _algorithmAccess = algorithmAccess;
         _imageUrlUtility = imageUrlUtility;
         _appSettings = appSettings;
+        _meilisearchAccess = meilisearchAccess;
     }
 
     [Route("{username}/{algorithm}/api/v1/videos/{videoId}")]
@@ -46,18 +49,25 @@ public class ApiController : Controller
 
     [Route("{username}/{algorithm}/api/v1/search")]
     [HttpGet]
-    public async Task<IActionResult> GetSearchResults([FromQuery] SearchRequest request)
+    public async Task<IActionResult> GetSearchResults([FromRoute] string username, [FromRoute] string algorithm, [FromQuery] SearchRequest request)
     {
-        MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "masterKey");
-        var index = client.Index("videos");
-        var searchable = await index.SearchAsync<VideoMeilisearch>(request.Q, new SearchQuery
-        {
-            HitsPerPage = 20,
-            Page = request.Page.HasValue ? request.Page.Value : 1
-        });
-        var videoIds = searchable.Hits.Select(z => z.Id).ToList();
+        var channelIds = _algorithmAccess.GetChannelIds(username, algorithm);
+        var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
         var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
         var searchResultsBase = videos.Select(TranslateToSearchResponse);
+
+        //MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "masterKey");
+        //var index = client.Index("videos");
+        //var searchable = await index.SearchAsync<VideoMeilisearch>(request.Q, new SearchQuery
+        //{
+        //    HitsPerPage = 20,
+        //    Page = request.Page.HasValue ? request.Page.Value : 1
+        //});
+        //var videoIds = searchable.Hits.Select(z => z.Id).ToList();
+        //var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
+        //var searchResultsBase = videos.Select(TranslateToSearchResponse);
+
+
         //var searchResultsBase = await _invidiousAPIAccess.Search(request)!;
 
         //System.Text.Json will only serialize properties on the base type.

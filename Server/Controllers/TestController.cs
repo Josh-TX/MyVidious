@@ -20,105 +20,52 @@ namespace MyVidious.Controllers
         private readonly HttpClient _httpClient;
         private readonly VideoDbContext _videoDbContext;
         private readonly InvidiousAPIAccess _invidiousAPIAccess;
+        private readonly MeilisearchAccess _meilisearchAccess;
 
-        public TestController(IHttpClientFactory httpClientFactory, VideoDbContext videoDbContext, InvidiousAPIAccess invidiousAPIAccess)
+        public TestController(
+            IHttpClientFactory httpClientFactory, 
+            VideoDbContext videoDbContext, 
+            InvidiousAPIAccess invidiousAPIAccess,
+            MeilisearchAccess meilisearchAccess
+            )
         {
             _httpClient = httpClientFactory.CreateClient();
             _videoDbContext = videoDbContext;
             _invidiousAPIAccess = invidiousAPIAccess;
+            _meilisearchAccess = meilisearchAccess;
         }
 
-        [Route("add-channel/{channelName}")]
-        [HttpGet]
-        public async Task<IActionResult> AddChannel([FromRoute] string channelName)
-        {
-            var searchResults = await _invidiousAPIAccess.Search(new SearchRequest
-            {
-                Q = channelName,
-                Type = "channel"
-            });
-            var channel = searchResults.OfType<SearchResponse_Channel>().FirstOrDefault(z => z.ChannelHandle.ToLower().Trim('@') == channelName.ToLower().Trim('@'));
-            if (channel == null)
-            {
-                return NotFound();
-            }
-            var existingDb = _videoDbContext.Channels.FirstOrDefault(z => z.UniqueId == channel.AuthorId);
-            if (existingDb == null) {
-                _videoDbContext.Channels.Add(new ChannelEntity
-                {
-                    Name = channel.Author,
-                    UniqueId = channel.AuthorId,
-                    Handle = channel.ChannelHandle,
-                    DateLastScraped = null,
-                    ScrapedToOldest = false,
-                    ScrapeFailureCount = 0,
-                });
-                _videoDbContext.SaveChanges();
-            }
-            return Ok();
-        }
-
-        [Route("")]
-        [HttpPost]
-        public async Task<IActionResult> PostData()
-        {
-            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "aSampleMasterKey");
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-
-            string jsonString = await System.IO.File.ReadAllTextAsync("movies.json");
-            var movies = JsonSerializer.Deserialize<IEnumerable<Movie>>(jsonString, options);
-
-            var index = client.Index("movies");
-            await index.UpdateSearchableAttributesAsync(new[] { "title", "overview" });
-            await index.AddDocumentsAsync<Movie>(movies);     
-            return Ok();      
-        }
 
         [Route("seed")]
-        [HttpPost]
-        public async Task<IActionResult> SeedExistingVideos()
+        [HttpGet]
+        public async Task<IActionResult> ReseedMeilisearch()
         {
-            var videoEntities = _videoDbContext.Videos.Include(z => z.Channel).ToList();
-            var meilisearchVideos = videoEntities.Select(z => new VideoMeilisearch
+            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
+            //await client.Index("videos").DeleteAsync();
+            var videos = _videoDbContext.Videos.Include(z => z.Channel).ToList();
+            await _meilisearchAccess.AddVideos(videos.Select(z => new VideoMeilisearch
             {
+                ChannelId = z.ChannelId,
                 Id = z.Id,
-                Title = z.Title,
-                Description = z.Description.Substring(0, Math.Min(150, z.Description.Length)),
-                ChannelHandle = z.Channel.Handle,
                 ChannelName = z.Channel.Name,
-            });
-            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "aSampleMasterKey");
-            var index = client.Index("videos");
-            await index.UpdateSearchableAttributesAsync(new[] { "title", "channelname", "channelhandle", "description" });
-            await index.AddDocumentsAsync(meilisearchVideos);
+                Title = z.Title
+            }));
             return Ok();
         }
 
-        [Route("")]
+        [Route("search")]
         [HttpGet]
-        public async Task<IActionResult> GetData()
+        public async Task<IActionResult> SearchMeilisearch([FromQuery] string q, [FromQuery] int? id)
         {
-            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
-            var index = client.Index("movies");
-
-            var movies = await index.SearchAsync<Movie>("botman");
-            foreach (var movie in movies.Hits)
+            if (id == null)
             {
-                Console.WriteLine(movie.Title);
+                id = 4;
             }
-            return Ok(movies.Hits);
+            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
+            //await client.Index("videos").DeleteAsync();
+            var videos = _videoDbContext.Videos.Include(z => z.Channel).ToList();
+            var res = await _meilisearchAccess.SearchVideoIds(q, 1, new[] {id.Value });
+            return Ok(res);
         }
-    }
-    
-    public class Movie
-    {
-        public int Id { get; set; }
-        public string Title { get; set; }
-        public string Poster { get; set; }
-        public string Overview { get; set; }
-        public IEnumerable<string> Genres { get; set; }
     }
 }

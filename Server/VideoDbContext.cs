@@ -17,6 +17,7 @@ public class VideoDbContext : DbContext
         modelBuilder.Entity<AlgorithmVideoEntity>().ToView(null).HasNoKey();
         modelBuilder.Entity<ChannelVideoCountEntity>().ToView("vw_channel_video_count").HasNoKey();
         modelBuilder.Entity<AlgorithmItemInfoEntity>().ToView("vw_algorithm_item_info").HasNoKey();
+        modelBuilder.Entity<VideoEntity>().HasIndex(z => z.UniqueId).IsUnique();
     }
 
     public DbSet<ChannelEntity> Channels { get; set; }
@@ -24,6 +25,7 @@ public class VideoDbContext : DbContext
     public DbSet<ChannelGroupItemEntity> ChannelGroupItems { get; set; }
     public DbSet<VideoEntity> Videos { get; set; }
     public DbSet<AlgorithmEntity> Algorithms { get; set; }
+    public DbSet<AlgorithmItemEntity> AlgorithmItems { get; set; }
 
 
     //VIEWS
