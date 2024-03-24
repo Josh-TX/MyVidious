@@ -128,7 +128,6 @@ public class VideoFetchJob : IJob
             AuthorVerified = videoObject.AuthorVerified,
             ThumbnailsJson = thumbnailsJson,
             Description = videoObject.Description,
-            DescriptionHtml = videoObject.DescriptionHtml,
             ViewCount = videoObject.ViewCount,
             ViewCountText = videoObject.ViewCountText,
             LengthSeconds = videoObject.LengthSeconds,

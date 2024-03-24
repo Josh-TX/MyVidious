@@ -196,7 +196,7 @@ public class AlgorithmAccess
 
             VideoThumbnails = thumbnails,
             Description = video.Description,
-            DescriptionHtml = video.DescriptionHtml,
+            DescriptionHtml = System.Web.HttpUtility.HtmlEncode(video.Description),
 
             LengthSeconds = video.LengthSeconds,
             ViewCount = video.ViewCount,

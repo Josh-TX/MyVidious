@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Meilisearch;
 using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace MyVidious.Controllers;
 
@@ -20,9 +21,9 @@ public class ApiController : Controller
     private MeilisearchAccess _meilisearchAccess;
 
     public ApiController(
-        InvidiousAPIAccess invidiousAPIAccess, 
-        VideoDbContext videoDbContext, 
-        AlgorithmAccess algorithmAccess, 
+        InvidiousAPIAccess invidiousAPIAccess,
+        VideoDbContext videoDbContext,
+        AlgorithmAccess algorithmAccess,
         ImageUrlUtility imageUrlUtility,
         AppSettings appSettings,
         MeilisearchAccess meilisearchAccess
@@ -52,27 +53,35 @@ public class ApiController : Controller
     public async Task<IActionResult> GetSearchResults([FromRoute] string username, [FromRoute] string algorithm, [FromQuery] SearchRequest request)
     {
         var channelIds = _algorithmAccess.GetChannelIds(username, algorithm);
-        var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
-        var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
-        var searchResultsBase = videos.Select(TranslateToSearchResponse);
-
-        //MeilisearchClient client = new MeilisearchClient(_appSettings.MeilisearchUrl, "masterKey");
-        //var index = client.Index("videos");
-        //var searchable = await index.SearchAsync<VideoMeilisearch>(request.Q, new SearchQuery
-        //{
-        //    HitsPerPage = 20,
-        //    Page = request.Page.HasValue ? request.Page.Value : 1
-        //});
-        //var videoIds = searchable.Hits.Select(z => z.Id).ToList();
-        //var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
-        //var searchResultsBase = videos.Select(TranslateToSearchResponse);
-
-
-        //var searchResultsBase = await _invidiousAPIAccess.Search(request)!;
-
-        //System.Text.Json will only serialize properties on the base type.
-        //but if we cast them to an object type, it'll serialize all properties on the underlying type
-        return Ok(searchResultsBase.Select(z => (object)z));
+        if (request.Type == "channel")
+        {
+            var foundChannelIds = await _meilisearchAccess.SearchChannelIds(request.Q, request.Page, channelIds, true);
+            var channels = _videoDbContext.Channels.Where(z => foundChannelIds.Contains(z.Id));
+            var searchResults = channels.Select(TranslateToSearchResponse);
+            return Ok(searchResults.Select(z => (object)z));
+        }
+        else if (request.Type == "video")
+        {
+            var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
+            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
+            var searchResults = videos.Select(TranslateToSearchResponse);
+            return Ok(searchResults.Select(z => (object)z));
+        }
+        else if (request.Type == "playlist" || request.Type == "movie" || request.Type == "show")
+        {
+            return Ok(Enumerable.Empty<object>());
+        }
+        else 
+        {
+            var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
+            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
+            var searchResults_video = videos.Select(TranslateToSearchResponse);
+            var foundChannelIds = await _meilisearchAccess.SearchChannelIds(request.Q, request.Page, channelIds, true);
+            var channels = _videoDbContext.Channels.Where(z => foundChannelIds.Contains(z.Id));
+            var searchResults_channel = channels.Select(TranslateToSearchResponse);
+            var merged = MergeVideosAndChannels(searchResults_channel, searchResults_video);
+            return Ok(merged.Select(z => (object)z));
+        }
     }
 
     [Route("{username}/{algorithm}/api/v1/channels/{channelId}")]
@@ -121,7 +130,7 @@ public class ApiController : Controller
 
             VideoThumbnails = thumbnails,
             Description = video.Description,
-            DescriptionHtml = video.DescriptionHtml,
+            DescriptionHtml = System.Web.HttpUtility.HtmlEncode(video.Description),
 
             ViewCount = video.ViewCount,
             ViewCountText = video.ViewCountText,
@@ -134,5 +143,45 @@ public class ApiController : Controller
             Premium = video.Premium,
             IsUpcoming = video.IsUpcoming
         };
+    }
+
+    private SearchResponse_Channel TranslateToSearchResponse(ChannelEntity channel)
+    {
+        var thumbnails = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<AuthorThumbnail>>(channel.ThumbnailsJson)!.ToList();
+        thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+        return new SearchResponse_Channel
+        {
+            Type = "channel",
+            ChannelHandle = channel.Handle,
+            Description = channel.Description,
+            DescriptionHtml = System.Web.HttpUtility.HtmlEncode(channel.Description),
+
+            Author = channel.Name,
+            AuthorId = channel.UniqueId,
+            AuthorUrl = channel.AuthorUrl,
+            AuthorVerified = channel.AuthorVerified,
+
+            AuthorThumbnails = thumbnails,
+
+            AutoGenerated = channel.AutoGenerated,
+            SubCount = channel.SubCount,
+            VideoCount = channel.VideoCount ?? 0
+        };
+    }
+
+    private IEnumerable<SearchResponseBase> MergeVideosAndChannels(IEnumerable<SearchResponse_Channel> channels, IEnumerable<SearchResponse_Video> videos)
+    {
+        var baseVideos = videos.OfType<SearchResponseBase>();
+        var baseChannels = channels.OfType<SearchResponseBase>();
+        //order is VV C VVV C VVVVV C VVVVVVVVVVVVVVVVVVVVVVVVVV
+        var result = baseVideos.Take(2)
+            .Concat(baseChannels.Take(1))
+            .Concat(baseVideos.Skip(2).Take(3))
+            .Concat(baseChannels.Skip(1).Take(1))
+            .Concat(baseVideos.Skip(5).Take(5))
+            .Concat(baseChannels.Skip(2).Take(1))
+            .Concat(baseVideos.Skip(10))
+            .ToList();
+        return result;
     }
 }

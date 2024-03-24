@@ -24,11 +24,18 @@ namespace MyVidious.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly VideoDbContext _videoDbContext;
         private readonly InvidiousAPIAccess _invidiousAPIAccess;
+        private readonly AdminAccess _adminAccess;
 
-        public AdminController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, InvidiousAPIAccess invidiousAPIAccess, VideoDbContext videoDbContext)
+        public AdminController(
+            UserManager<IdentityUser> userManager, 
+            RoleManager<IdentityRole> roleManager, 
+            AdminAccess adminAccess,
+            InvidiousAPIAccess invidiousAPIAccess, 
+            VideoDbContext videoDbContext)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _adminAccess = adminAccess;
             _videoDbContext = videoDbContext;
             _invidiousAPIAccess = invidiousAPIAccess;
         }
@@ -43,90 +50,31 @@ namespace MyVidious.Controllers
 
         [HttpGet("api/search-channels")]
         [Authorize]
-        public async Task<IEnumerable<FoundChannel>> SearchChannels([FromQuery] string searchText)
+        public Task<IEnumerable<FoundChannel>> SearchChannels([FromQuery] string searchText)
         {
-            if (searchText == null || searchText.Length < 2)
-            {
-                throw new ArgumentException("searchText must be at least length 2");
-            }
-            var invidiousResults = await _invidiousAPIAccess.Search(new Models.Invidious.SearchRequest
-            {
-                Q = searchText,
-                Type = "channel",
-            });
-            var invidiousChannels = invidiousResults.OfType<Models.Invidious.SearchResponse_Channel>().Take(10).ToList();
-            var uniqueIds = invidiousChannels.Select(z => z.AuthorId).ToList();
-            if (!uniqueIds.Any())
-            {
-                return Enumerable.Empty<FoundChannel>();
-            }
-            var existingChannels = await _videoDbContext.ChannelVideoCounts.Where(z => uniqueIds.Contains(z.UniqueId)).ToListAsync();
-            var response = invidiousChannels.Select(invidiousChannel =>
-            {
-                var existingChannel = existingChannels.FirstOrDefault(z => z.UniqueId == invidiousChannel.AuthorId);
-                var thumbnail = invidiousChannel.AuthorThumbnails.Any(z => z.Height > 64)
-                    ? invidiousChannel.AuthorThumbnails.OrderBy(z => z.Height).First().Url
-                    : invidiousChannel.AuthorThumbnails.OrderByDescending(z => z.Height).FirstOrDefault()?.Url;
-                if (thumbnail != null && thumbnail.StartsWith("//"))
-                {
-                    thumbnail = "https:" + thumbnail;
-                }
-                return new FoundChannel
-                {
-                    ChannelId = existingChannel?.ChannelId,
-                    UniqueId = invidiousChannel.AuthorId,
-                    Name = invidiousChannel.Author,
-                    Handle = invidiousChannel.ChannelHandle,
-                    Description = invidiousChannel.Description,
-                    ThumbnailUrl = thumbnail,
-                    VideoCount = existingChannel != null ? existingChannel.VideoCount : null //a tracked channel could have a null videoCount if we haven't scrapedToOldest
-                };
-            });
-            return response;
+            return _adminAccess.SearchChannels(searchText);
         }
 
         [HttpGet("api/search-algorithms")]
         [Authorize]
-        public async Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms([FromQuery] string? username)
+        public Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms([FromQuery] string? username)
         {
-            var algorithmsQuery = _videoDbContext.Algorithms.AsQueryable();
-            if (!string.IsNullOrEmpty(username))
-            {
-                algorithmsQuery = algorithmsQuery.Where(z => z.Username == username);
-            }
-            var algorithms = await algorithmsQuery.ToListAsync();
-
-            return algorithms.Select(z => new FoundAlgorithm
-            {
-                AlgorithmId = z.Id,
-                AlgorithmName = z.Name,
-                Description = z.Description,
-                Username = z.Username
-            });
+            return _adminAccess.SearchAlgorithms(username);
         }
 
         [HttpGet("api/algorithm/{algorithmId}")]
         [Authorize]
-        public async Task<LoadAlgorithmResult> GetAlgorithm([FromRoute] int algorithmId)
+        public Task<LoadAlgorithmResult> GetAlgorithm([FromRoute] int algorithmId)
         {
-            var algorithmEntity = _videoDbContext.Algorithms.First(z => z.Id == algorithmId);
-            var itemInfos = await _videoDbContext.AlgorithmItemInfos.Where(z => z.AlgorithmId == algorithmId).ToListAsync();
-            var result = new LoadAlgorithmResult
-            {
-                AlgorithmId = algorithmId,
-                AlgorithmItems = itemInfos.Select(z => new LoadAlgorithmItem
-                {
-                    ChannelGroupId = z.ChannelGroupId,
-                    ChannelId = z.ChannelId,
-                    MaxChannelWeight = z.MaxChannelWeight,
-                    WeightMultiplier = z.WeightMultiplier,
-                    Name = z.Name,
-                }),
-                Description = algorithmEntity.Description,
-                AlgorithmName = algorithmEntity.Name,
-                Username = algorithmEntity.Username,
-            };
-            return result;
+            return _adminAccess.GetAlgorithm(algorithmId);
+        }
+        [HttpDelete("api/algorithms/{algorithmId}")]
+        [Authorize]
+        public IActionResult DeleteAlgorithm([FromRoute] int algorithmId)
+        {
+            var username = User.FindFirst(ClaimTypes.Name)!.Value;
+            _adminAccess.DeleteAlgorithm(algorithmId, username);
+            return Ok();
         }
 
         [HttpPut("api/algorithm")]
@@ -135,105 +83,11 @@ namespace MyVidious.Controllers
         [Authorize]
         public async Task<IActionResult> UpdateAlgorithm([FromBody] UpdateAlgorithmRequest request)
         {
-            var just1NonNull = request.AlgorithmItems.All(item => new object?[] { item.ChannelId, item.ChannelGroupId, item.NewChannel }.Count(p => p != null) == 1);
-            if (!just1NonNull)
-            {
-                return BadRequest("each algorithmItem should have precisely 1 of the 3 nullable properties be non-null");
-            }
-            var channelsToAdd = request.AlgorithmItems.Where(z => !z.ChannelId.HasValue && !z.ChannelGroupId.HasValue).ToList();
-            if (channelsToAdd.Any(z => z.NewChannel!.ChannelId.HasValue))
-            {
-                return BadRequest("NewChannel should be for new channels. The provided channel already has a channel Id");
-            }
-            if (channelsToAdd.Count() != channelsToAdd.Select(z => z.NewChannel!.UniqueId).Distinct().Count())
-            {
-                return BadRequest("NewChannels contains duplicate UniqueIds");
-            }
             var username = User.FindFirst(ClaimTypes.Name)!.Value;
-            var algorithm = request.AlgorithmId.HasValue
-                ? _videoDbContext.Algorithms.Include(z => z.AlgorithmItems).First(z => z.Id == request.AlgorithmId)
-                : new AlgorithmEntity()
-                {
-                    Name = request.Name,
-                    Username = username,
-                };
-            if (algorithm.Username != username)
-            {
-                return BadRequest("Algorithm belongs to a different user");
-            }
-            if (!request.AlgorithmId.HasValue || algorithm.Name?.ToLower() != request.Name.ToLower())
-            {
-                var nameConflicts = _videoDbContext.Algorithms.Where(z => z.Name == request.Name && z.Username == username).Any();
-                if (nameConflicts)
-                {
-                    return BadRequest($"user {username} already has an Algorithm named {request.Name}");
-                }
-            }
-
-            //save all new channels to the database
-            var newChannelEntities = channelsToAdd.Select(z => new ChannelEntity
-            {
-                Name = z.NewChannel!.Name,
-                UniqueId = z.NewChannel!.UniqueId,
-                Handle = z.NewChannel.Handle,
-                DateLastScraped = null,
-                ScrapedToOldest = false,
-                ScrapeFailureCount = 0,
-            }).ToList();
-            _videoDbContext.Channels.AddRange(newChannelEntities);
-            _videoDbContext.SaveChanges();//this should assign Ids to newChannelEntities
-
-
-
-            if (!request.AlgorithmId.HasValue)
-            {
-                _videoDbContext.Algorithms.Add(algorithm);
-            }
-            algorithm.Name = request.Name;
-            algorithm.Description = request.Description;
-
-            //remove all algorithmItems not found among request.AlgorithmItems
-            var includedChannelIds = request.AlgorithmItems.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId).ToList();
-            var includedChannelGroupIds = request.AlgorithmItems.Where(z => z.ChannelGroupId.HasValue).Select(z => z.ChannelGroupId).ToList();
-            if (algorithm.AlgorithmItems != null)
-            {
-                algorithm.AlgorithmItems = algorithm.AlgorithmItems
-                    .Where(z => includedChannelGroupIds.Contains(z.ChannelGroupId) || includedChannelIds.Contains(z.ChannelId))
-                    .ToList();
-            } else
-            {
-                algorithm.AlgorithmItems = new List<AlgorithmItemEntity>();
-            }
-
-
-
-            //a malicious user could change the channel name or handle. Not sure if it's worth the performance cost to validate. If you have malicious users, you've got bigger problems
-            var newChannelAlgorithmItems = channelsToAdd.Select(channelToAdd =>
-            {
-                var channelEntity = newChannelEntities.First(z => z.UniqueId == channelToAdd.NewChannel.UniqueId);
-                return new AlgorithmItemEntity
-                {
-                    ChannelId = channelEntity.Id,//channelToAdd.NewChannel.Id is null, hence we use the channelEntity
-                    MaxChannelWeight = channelToAdd.MaxChannelWeight,
-                    WeightMultiplier = channelToAdd.WeightMultiplier,
-                };
-            }).ToList();
-            newChannelAlgorithmItems.AddRange(request.AlgorithmItems
-                .Where(z => z.NewChannel == null && !algorithm.AlgorithmItems.Any(zz => zz.ChannelId == z.ChannelId))
-                .Select(z => new AlgorithmItemEntity
-            {
-                ChannelId = z.ChannelId,
-                ChannelGroupId = z.ChannelGroupId,
-                MaxChannelWeight = z.MaxChannelWeight,
-                WeightMultiplier = z.WeightMultiplier,
-            }));
-            foreach(var newItem in newChannelAlgorithmItems)
-            {
-                algorithm.AlgorithmItems.Add(newItem);
-            }
-            _videoDbContext.SaveChanges();
-            return Ok(algorithm.Id);
+            var id = await _adminAccess.UpdateAlgorithm(request, username);
+            return Ok(id);
         }
+
 
         [HttpGet("api/user-info")]
         public async Task<UserInfo> GetUserInfo()

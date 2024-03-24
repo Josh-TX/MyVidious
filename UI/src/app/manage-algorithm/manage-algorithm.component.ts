@@ -40,7 +40,7 @@ export class ManageAlgorithmComponent {
 
     @ViewChild("table") table!: MatTable<any>;
 
-    displayedColumns: string[] = ['type', 'name', 'maxChannelWeight', 'weightMultiplier', 'status',  'actions'];
+    displayedColumns: string[] = ['type', 'name', 'maxChannelWeight', 'weightMultiplier', 'actions'];
     private routeSub!: Subscription;
     ngOnInit(){
         this.routeSub = this.route.params.subscribe(params => {
@@ -84,7 +84,7 @@ export class ManageAlgorithmComponent {
             newChannel: channel.channelId ? undefined : channel,
             weightMultiplier: 1,
             maxChannelWeight: 100,
-            name: channel.name,
+            name: channel.author,
             status: "added"
         })
         this.table.renderRows();
@@ -120,13 +120,22 @@ export class ManageAlgorithmComponent {
         }
         this.client.updateAlgorithm(request).subscribe({
             next: id => {
-                this.snackBar.open("Algorithm Saved");
+                this.snackBar.open("Algorithm Saved", "", { duration: 3000 });
                 this.router.navigate(["/algorithm", id])
             },
             error: err => {
                 this.snackBar.open(err, "", { panelClass: "snackbar-error", duration: 3000 });
             }
         })
+    }
+
+    delete(){
+        if (confirm("Are you sure you want to delete this algorithm?") && this.algorithmId){
+            this.client.deleteAlgorithm(this.algorithmId).subscribe(z => {
+                this.snackBar.open("Algorithm Deleted", "", { duration: 3000 });
+                this.router.navigate(["/"])
+            })
+        }
     }
 }
 

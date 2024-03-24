@@ -21,7 +21,6 @@ public class ChannelEntity
 
 
     public string Description { get; set; }
-    public string DescriptionHtml { get; set; }
     public string AuthorUrl { get; set; }
     public string ThumbnailsJson { get; set; }
 

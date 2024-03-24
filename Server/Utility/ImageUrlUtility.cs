@@ -39,4 +39,29 @@ public class ImageUrlUtility
         }
         return videoThumbnail;
     }
+
+    public AuthorThumbnail FixImageUrl(AuthorThumbnail thumbnail)
+    {
+        if (thumbnail.Url.StartsWith(_invidiousUrl))
+        {
+            if (_proxyImages)
+            {
+                thumbnail.Url = thumbnail.Url.Replace(_invidiousUrl, _myVidiousUrl + "/a/a");
+            }
+            return thumbnail;
+        }
+        bool startsWithHttpOrHttps = System.Text.RegularExpressions.Regex.IsMatch(thumbnail.Url, @"^https?://");
+        if (!startsWithHttpOrHttps)
+        {
+            if (thumbnail.Url.StartsWith("//"))
+            {
+                thumbnail.Url = "https:" + thumbnail.Url;
+            } else
+            {
+                var replacementUrl = _proxyImages ? _myVidiousUrl + "/a/a" : _invidiousUrl;
+                thumbnail.Url = replacementUrl + "/" + thumbnail.Url.TrimStart('/');
+            }
+        }
+        return thumbnail;
+    }
 }

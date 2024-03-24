@@ -8,11 +8,14 @@ namespace MyVidious.Access;
 public class MeilisearchAccess
 {
     private string _meilisearchUrl;
+    private string _meilisearchKey;
     private bool? _videoIndexConfigured;
+    private bool? _channelIndexConfigured;
 
     public MeilisearchAccess(AppSettings appsettings)
     {
         _meilisearchUrl = appsettings.MeilisearchUrl!;
+        _meilisearchKey = appsettings.MeilisearchKey ?? "";
     }
 
     public async Task AddVideos(IEnumerable<VideoMeilisearch> videos)
@@ -28,8 +31,7 @@ public class MeilisearchAccess
                 await ConfigureVideoIndex(client);
             }
             index = client.Index("videos");
-            var res = await index.AddDocumentsAsync(videos);
-            var status = res.Status;
+            await index.AddDocumentsAsync(videos);
         }
         catch (Exception)
         {
@@ -46,7 +48,6 @@ public class MeilisearchAccess
         }
         var index = client.Index("videos");
         var filter = "channelId IN [" + string.Join(',', channelIds) + "]";
-        //var filter = "channelId = " + channelIds.First();
         var searchable = await index.SearchAsync<VideoMeilisearch>(searchText, new SearchQuery
         {
             Filter = filter,
@@ -57,31 +58,45 @@ public class MeilisearchAccess
         return videoIds;
     }
 
-    //public async Task AddChannels(IEnumerable<VideoMeilisearch> videos)
-    //{
-    //    try
-    //    {
-    //        var client = GetClient();
-    //        Meilisearch.Index index;
-    //        //I want to avoid calling UpdateSearchableAttributesAsync and UpdateFilterableAttributesAsync.
-    //        //To avoid awaiting GetAllIndexesAsync(), I'll use _indexConfigured so that each server restart it only does so once. 
-    //        if (_indexConfigured != true)
-    //        {
-    //            await ConfigureVideoIndex(client);
-    //        }
-    //        index = client.Index("videos");
-    //        var res = await index.AddDocumentsAsync(videos);
-    //        var status = res.Status;
-    //    }
-    //    catch (Exception)
-    //    {
+    public async Task AddChannels(IEnumerable<ChannelMeilisearch> channels)
+    {
+        var client = GetClient();
+        Meilisearch.Index index;
+        if (_channelIndexConfigured != true)
+        {
+            await ConfigureChannelIndex(client);
+        }
+        index = client.Index("channels");
+        await index.AddDocumentsAsync(channels);
+    }
 
-    //    }
-    //}
+    public async Task<IEnumerable<int>> SearchChannelIds(string searchText, int? page, IEnumerable<int> channelIds, bool searchDescription)
+    {
+        var client = GetClient();
+        if (_channelIndexConfigured != true)
+        {
+            await ConfigureChannelIndex(client);
+        }
+        var index = client.Index("channels");
+        var filter = "id2 IN [" + string.Join(',', channelIds) + "]";
+        var query = new SearchQuery
+        {
+            Filter = filter,
+            HitsPerPage = 20,
+            Page = page.HasValue ? page.Value : 1
+        };
+        if (!searchDescription)
+        {
+            query.AttributesToSearchOn = new[] { "name", "handle" };
+        }
+        var searchable = await index.SearchAsync<ChannelMeilisearch>(searchText, query);
+        var foundChannelIds = searchable.Hits.Select(z => z.Id).ToList();
+        return foundChannelIds;
+    }
 
     private MeilisearchClient GetClient()
     {
-        return new MeilisearchClient(_meilisearchUrl, "aSampleMasterKey");
+        return new MeilisearchClient(_meilisearchUrl, _meilisearchKey);
     }
 
     private async Task ConfigureVideoIndex(MeilisearchClient client)
@@ -96,5 +111,19 @@ public class MeilisearchAccess
             await newIndex.UpdateFilterableAttributesAsync(new[] { "channelId" });
         }
         _videoIndexConfigured = true;
+    }
+
+    private async Task ConfigureChannelIndex(MeilisearchClient client)
+    {
+        var indexes = await client.GetAllIndexesAsync();
+        var channelIndex = indexes.Results.FirstOrDefault(z => z.Uid == "channels");
+        if (channelIndex == null)
+        {
+            await client.CreateIndexAsync("channels", "id");
+            var newIndex = client.Index("channels");
+            await newIndex.UpdateSearchableAttributesAsync(new[] { "name", "handle", "description" });
+            await newIndex.UpdateFilterableAttributesAsync(new[] { "id2" });
+        }
+        _channelIndexConfigured = true;
     }
 }

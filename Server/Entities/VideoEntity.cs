@@ -23,7 +23,6 @@ public class VideoEntity
 
     public string ThumbnailsJson { get; set; }
     public string Description { get; set; }
-    public string DescriptionHtml { get; set; }
 
     public long ViewCount { get; set; }
     public string ViewCountText { get; set; }

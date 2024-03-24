@@ -1,6 +1,17 @@
-<div style="padding: 16px;">
+<div style="padding: 8px 16px;">
     <h3 *ngIf="!algorithmId">New Algorithm will be available at <span class="text-primary">{{getPath()}}</span></h3>
-    <h3 *ngIf="algorithmId">Algorithm available at <span class="text-primary">{{getPath()}}</span></h3>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 *ngIf="algorithmId">Algorithm available at <span class="text-primary">{{getPath()}}</span></h3>
+        <button mat-raised-button [matMenuTriggerFor]="menu" aria-label="Example icon-button with a menu">
+            Actions
+            <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="delete()" [disabled]="!algorithmId">
+                <span>Delete Algorithm</span>
+            </button>
+        </mat-menu>
+    </div>
     <div style="display: flex; gap: 16px; margin: 16px 0;">
         <div style="max-width: 200px;">
             <mat-form-field class="w-100" style="margin-bottom: -23px;">
@@ -42,7 +53,7 @@
             <th mat-header-cell *matHeaderCellDef> Description </th>
             <td mat-cell *matCellDef="let item"> {{item.description}} </td>
         </ng-container>
-        
+
         <ng-container matColumnDef="maxChannelWeight">
             <th mat-header-cell *matHeaderCellDef> Max Channel Weight </th>
             <td mat-cell *matCellDef="let item">
@@ -53,19 +64,19 @@
 
         <ng-container matColumnDef="weightMultiplier">
             <th mat-header-cell *matHeaderCellDef> Weight Multiplier </th>
-            <td mat-cell *matCellDef="let item"> 
+            <td mat-cell *matCellDef="let item">
                 <input type="number" [(ngModel)]="item.weightMultiplier">
             </td>
         </ng-container>
 
-        <ng-container matColumnDef="status">
+        <!-- <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef> Status </th>
             <td mat-cell *matCellDef="let item"> {{item.status}} </td>
-        </ng-container>
+        </ng-container> -->
 
         <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef> Actions </th>
-            <td mat-cell *matCellDef="let item"> 
+            <td mat-cell *matCellDef="let item">
                 <button mat-raised-button (click)="remove(item)">Remove</button>
             </td>
         </ng-container>

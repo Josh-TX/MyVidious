@@ -1,5 +1,5 @@
 <div style="height: 48px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 0 12px;">
-    <h2 style="margin: 0;" [routerLink]="['/dashboard']">MyVidious Admin</h2>
+    <a style="margin: 0; cursor: pointer; font-size: 24px; color: black;" [routerLink]="['/dashboard']">MyVidious Admin</a>
     <div *ngIf="userInfo">
         <button mat-button [matMenuTriggerFor]="menu">
             <mat-icon class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color">person</mat-icon>

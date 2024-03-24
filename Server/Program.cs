@@ -75,6 +75,7 @@ services.AddScoped<IPScopedCache>();
 services.AddScoped<GlobalCache>();
 services.AddScoped<AlgorithmAccess>();
 services.AddScoped<ImageUrlUtility>();
+services.AddScoped<AdminAccess>();
 
 services.AddSingleton<CustomProxyConfigProvider>();
 services.AddSingleton<IProxyConfigProvider>((provider) => provider.GetRequiredService<CustomProxyConfigProvider>());
@@ -95,21 +96,21 @@ services.AddQuartz(quartz =>
     var urlJobKey = JobKey.Create(nameof(InvidiousUrlsAccess));
     quartz.AddJob<InvidiousUrlsAccess>(urlJobKey);
     quartz.AddTrigger(trigger => 
-        trigger.ForJob(urlJobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
+        trigger.ForJob(urlJobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromHours(2)).RepeatForever())
     );
     var videoFetchJobKey = JobKey.Create(nameof(VideoFetchJob));
     quartz.AddJob<VideoFetchJob>(videoFetchJobKey, options => options.DisallowConcurrentExecution());
     quartz.AddTrigger(trigger =>
         trigger.ForJob(videoFetchJobKey)
-        .StartAt(DateTimeOffset.UtcNow.AddSeconds(10))
-        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromSeconds(60)).RepeatForever())
+        .StartAt(DateTimeOffset.UtcNow.AddMinutes(30))
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
     );
 });
 services.AddQuartzHostedService();
 
 var app = builder.Build();
 
-
+app.UseMiddleware<WebRequestExceptionMiddleware>();
 app.MapControllers();
 app.UseDeveloperExceptionPage();
 app.UseSwagger();
