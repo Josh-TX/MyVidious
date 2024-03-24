@@ -7,14 +7,18 @@ public class ImageUrlUtility
 {
     private readonly string _invidiousUrl;
     private readonly bool _proxyImages;
-    private readonly string _myVidiousUrl;
+    private readonly string _myVidiousApiUrl;
 
     public ImageUrlUtility(AppSettings appSettings, IHttpContextAccessor httpContextAccessor, InvidiousUrlsAccess invidiousUrlsAccess)
     {
         _invidiousUrl = invidiousUrlsAccess.GetInvidiousUrl();
         _proxyImages = appSettings.ProxyImages;
         var request = httpContextAccessor.HttpContext!.Request;
-        _myVidiousUrl = $"https://{request.Host}".TrimEnd('/');
+        var segments = request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var path = segments != null && segments.Length >= 2
+            ? $"/{segments[0]}/{segments[1]}"
+            : "/placeholder/placeholder";
+        _myVidiousApiUrl = $"{request.Scheme}://{request.Host}" + path;
     }
 
 
@@ -27,14 +31,14 @@ public class ImageUrlUtility
         {
             if (_proxyImages)
             {
-                videoThumbnail.Url = videoThumbnail.Url.Replace(_invidiousUrl, _myVidiousUrl + "/a/a");
+                videoThumbnail.Url = videoThumbnail.Url.Replace(_invidiousUrl, _myVidiousApiUrl);
             }
             return videoThumbnail;
         }
         bool startsWithHttpOrHttps = System.Text.RegularExpressions.Regex.IsMatch(videoThumbnail.Url, @"^https?://");
         if (!startsWithHttpOrHttps)
         {
-            var replacementUrl = _proxyImages ? _myVidiousUrl + "/a/a" : _invidiousUrl;
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
             videoThumbnail.Url = replacementUrl + "/" + videoThumbnail.Url.TrimStart('/');
         }
         return videoThumbnail;
@@ -46,7 +50,7 @@ public class ImageUrlUtility
         {
             if (_proxyImages)
             {
-                thumbnail.Url = thumbnail.Url.Replace(_invidiousUrl, _myVidiousUrl + "/a/a");
+                thumbnail.Url = thumbnail.Url.Replace(_invidiousUrl, _myVidiousApiUrl);
             }
             return thumbnail;
         }
@@ -58,7 +62,7 @@ public class ImageUrlUtility
                 thumbnail.Url = "https:" + thumbnail.Url;
             } else
             {
-                var replacementUrl = _proxyImages ? _myVidiousUrl + "/a/a" : _invidiousUrl;
+                var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
                 thumbnail.Url = replacementUrl + "/" + thumbnail.Url.TrimStart('/');
             }
         }

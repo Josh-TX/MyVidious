@@ -98,6 +98,10 @@ export class ManageAlgorithmComponent {
             this.snackBar.open("algorithm name required", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
         }
+        if (!/^[a-zA-Z0-9]+$/.test(this.name)){
+            this.snackBar.open("algorithm name must be alphanumeric", "", { panelClass: "snackbar-error", duration: 3000 });
+            return;
+        }
         if (!this.description){
             this.snackBar.open("algorithm description required", "", { panelClass: "snackbar-error", duration: 3000 });
             return;

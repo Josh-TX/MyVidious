@@ -31,11 +31,11 @@
             </button>
         </div>
     </div>
-    <div style="display: flex; gap: 16px; flex-direction: row-reverse; align-items: center;">
-        <channel-search style="flex-grow: 1; max-width: 700px;" (select)="addChannel($event)"></channel-search>
+    <div style="display: flex; gap: 16px; justify-content: center; align-items: center;">
         <div>
-            Adding a Channel
+            Add Channel
         </div>
+        <channel-search style="flex-grow: 1; max-width: 700px;" (select)="addChannel($event)"></channel-search>
     </div>
     <table #table mat-table [dataSource]="items" class="mat-elevation-z8" style="margin-top: 16px;">
 

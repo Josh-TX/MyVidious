@@ -20,6 +20,10 @@ public class InvidiousUrlsAccess : IJob
         _httpClient = httpClientFactory.CreateClient();
         _configInvidiousUrl = string.IsNullOrEmpty(appSettings.InvidiousUrl) ? null : appSettings.InvidiousUrl;
         _customProxyConfigProvider = customProxyConfigProvider;
+        if (_configInvidiousUrl != null)
+        {
+            _urlPool = new[] { _configInvidiousUrl };
+        }
     }
     private static int _index;
 

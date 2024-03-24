@@ -127,6 +127,10 @@ public class AdminAccess
 
     public async Task<int> UpdateAlgorithm(UpdateAlgorithmRequest request, string username)
     {
+        if (!request.Name.All(char.IsLetterOrDigit))
+        {
+            throw new WebRequestException(400, "Algorithm name must be alphanumeric");
+        }
         var just1NonNull = request.AlgorithmItems.All(item => new object?[] { item.ChannelId, item.ChannelGroupId, item.NewChannel }.Count(p => p != null) == 1);
         if (!just1NonNull)
         {

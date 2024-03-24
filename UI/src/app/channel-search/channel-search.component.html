@@ -3,7 +3,7 @@
         <mat-label>Search for Channels</mat-label>
         <input autocomplete="off" matInput [(ngModel)]="text" (ngModelChange)="textChanged()" name="searchText" (blur)="blured()" (focus)="focused()">
     </mat-form-field>
-    <div *ngIf="showDropdown && text" class="mat-elevation-z4" style="position: absolute; top: 100%; left: 0; right: 0; overflow-y: auto; max-height: 400px; background: #fff;">
+    <div *ngIf="showDropdown && text" class="mat-elevation-z4" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 5; overflow-y: auto; max-height: 400px; background: #fff;">
         <div *ngIf="text.length < 2" class="text-center text-muted" style="padding: 8px;">type more letters</div>
         <div *ngIf="isLoading" class="text-center text-muted" style="padding: 8px;">loading</div>
         <div *ngIf="!isLoading && !results.length && text.length >= 2" class="text-center text-muted" style="padding: 8px;">no results</div>
