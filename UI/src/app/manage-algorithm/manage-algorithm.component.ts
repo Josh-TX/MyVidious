@@ -120,7 +120,7 @@ export class ManageAlgorithmComponent {
         }
         this.client.updateAlgorithm(request).subscribe({
             next: id => {
-                this.snackBar.open("Algorithm Saved", "", { duration: 3000 });
+                this.snackBar.open("Algorithm Saved. Changes may take a few minutes to take effect on the API", "", { duration: 3000 });
                 this.router.navigate(["/algorithm", id])
             },
             error: err => {

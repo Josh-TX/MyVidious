@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using System.Collections.Concurrent;
 using System.Security.Policy;
 
 namespace MyVidious.Utilities;
@@ -6,10 +7,26 @@ namespace MyVidious.Utilities;
 public class GlobalCache
 {
     private readonly IMemoryCache _cache;
+    private static readonly ConcurrentDictionary<int, DateTime> algorithmLastUpdate = new ConcurrentDictionary<int, DateTime>();
+    private const int UPDATE_MINUTES = 3;
 
     public GlobalCache(IMemoryCache memoryCache)
     {
         _cache = memoryCache;
+    }
+
+    public void HandleAlgorithmUpdated(int algorithmId)
+    {
+        _cache.Remove($"{CacheConstants.RandomAlgorithmVideoIds}:{algorithmId}");
+        _cache.Remove($"{CacheConstants.RecentAlgorithmVideoIds}:{algorithmId}");
+        algorithmLastUpdate.TryAdd(algorithmId, DateTime.UtcNow);
+        foreach (var pair in algorithmLastUpdate)
+        {
+            if ((DateTime.UtcNow - pair.Value).TotalMinutes > UPDATE_MINUTES)
+            {
+                algorithmLastUpdate.TryRemove(pair);
+            }
+        }
     }
 
     public List<int>? GetRandomAlgorithmVideoIds(int algorithmId)
@@ -24,9 +41,14 @@ public class GlobalCache
     public void SetRandomAlgorithmVideoIds(int algorithmId, List<int> videoIds)
     {
         var key = $"{CacheConstants.RandomAlgorithmVideoIds}:{algorithmId}";
+        var time = TimeSpan.FromMinutes(30);
+        if (algorithmLastUpdate.TryGetValue(algorithmId, out var lastUpdate) && (DateTime.UtcNow - lastUpdate).TotalMinutes < UPDATE_MINUTES)
+        {
+            time = TimeSpan.FromMinutes(1);
+        }
         _cache.Set(key, videoIds, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(40)
+            AbsoluteExpirationRelativeToNow = time
         });
     }
 
@@ -43,27 +65,14 @@ public class GlobalCache
     public void SetRecentAlgorithmVideoIds(int algorithmId, List<int> videoIds)
     {
         var key = $"{CacheConstants.RecentAlgorithmVideoIds}:{algorithmId}";
+        var time = TimeSpan.FromMinutes(30);
+        if (algorithmLastUpdate.TryGetValue(algorithmId, out var lastUpdate) && (DateTime.UtcNow - lastUpdate).TotalMinutes < UPDATE_MINUTES)
+        {
+            time = TimeSpan.FromMinutes(1);
+        }
         _cache.Set(key, videoIds, new MemoryCacheEntryOptions
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(40)
-        });
-    }
-
-    public List<string>? GetInvidiousUrls()
-    {
-        var key = CacheConstants.InvidiousUrls;
-        if (_cache.TryGetValue<List<string>>(key, out var urls))
-        {
-            return urls;
-        }
-        return null;
-    }
-    public void SetInvidiousUrls(List<string> urls)
-    {
-        var key = CacheConstants.InvidiousUrls;
-        _cache.Set(key, urls, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2)
+            AbsoluteExpirationRelativeToNow = time
         });
     }
 }

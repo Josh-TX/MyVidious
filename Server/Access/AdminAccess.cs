@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using MyVidious.Background;
 using MyVidious.Data;
 using MyVidious.Models.Admin;
+using MyVidious.Utilities;
 using Quartz;
 
 namespace MyVidious.Access;
@@ -12,18 +13,21 @@ public class AdminAccess
     private InvidiousAPIAccess _invidiousApiAccess;
     private MeilisearchAccess _meilisearchAccess;
     private ISchedulerFactory _schedulerFactory;
+    private GlobalCache _globalCache;
 
     public AdminAccess(
         VideoDbContext videoDbContext,
         InvidiousAPIAccess invidiousApiAccess,
         MeilisearchAccess meilisearchAccess,
-        ISchedulerFactory schedulerFactory
+        ISchedulerFactory schedulerFactory,
+        GlobalCache globalCache
         )
     {
         _videoDbContext = videoDbContext;
         _invidiousApiAccess = invidiousApiAccess;
         _meilisearchAccess = meilisearchAccess;
         _schedulerFactory = schedulerFactory;
+        _globalCache = globalCache;
 
     }
 
@@ -218,7 +222,7 @@ public class AdminAccess
         //first add the newChannels
         var newChannelAlgorithmItems = request.AlgorithmItems.Where(z => z.NewChannel != null).Select(algorithmItem =>
         {
-            var channelEntity = newChannelEntities.First(z => z.UniqueId == algorithmItem.NewChannel.AuthorId);
+            var channelEntity = newChannelEntities.First(z => z.UniqueId == algorithmItem.NewChannel!.AuthorId);
             return new AlgorithmItemEntity
             {
                 ChannelId = channelEntity.Id,
@@ -241,6 +245,7 @@ public class AdminAccess
             algorithm.AlgorithmItems.Add(newItem);
         }
         _videoDbContext.SaveChanges();
+        _globalCache.HandleAlgorithmUpdated(algorithm.Id);
         return algorithm.Id;
     }
 

@@ -110,7 +110,8 @@ public class VideoFetchJob : IJob
             {
                 return;
             }
-            await Task.Delay(5000);//throttle
+            var throttleTime = new Random().Next(1000, 20000);
+            await Task.Delay(throttleTime);
         }
     }
 
