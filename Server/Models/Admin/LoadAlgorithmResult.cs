@@ -2,9 +2,10 @@ namespace MyVidious.Models.Admin;
 
 public class LoadAlgorithmResult
 {
-    public int? AlgorithmId { get; set; }
-    public string Username { get; set; }
-    public string AlgorithmName { get; set; }
+    public int AlgorithmId { get; set; }
+    public required string Username { get; set; }
+    public required string AlgorithmName { get; set; }
     public string? Description { get; set; }
-    public IEnumerable<LoadAlgorithmItem> AlgorithmItems { get; set; }
+    public required IEnumerable<LoadAlgorithmItem> AlgorithmItems { get; set; }
+    public required double EstimatedSumWeight {get;set;}
 }

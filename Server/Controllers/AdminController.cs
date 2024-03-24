@@ -184,7 +184,7 @@ namespace MyVidious.Controllers
         {
             var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
             identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
-            identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
+            identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName!));
             if (isAdmin)
             {
                 identity.AddClaim(new Claim(ClaimTypes.Role, "admin"));
@@ -211,7 +211,7 @@ namespace MyVidious.Controllers
             {
                 return BadRequest("Incorrect Password");
             }
-            var result = await _userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
+            var result = await _userManager.ChangePasswordAsync(user!, request.OldPassword, request.NewPassword);
             if (result.Succeeded)
             {
                 return Ok("Password Changed");

@@ -70,6 +70,7 @@ public class VideoFetchJob : IJob
         {
             Sort_by = "newest"
         };
+        int count = 0;
         while(true)
         {
             Models.Invidious.ChannelVideosResponse response;
@@ -89,11 +90,13 @@ public class VideoFetchJob : IJob
             var videosToAdd = response.Videos.Where(z => !existingUniqueIds.Contains(z.VideoId)).Select(TranslateToEntity).ToList();
             foreach(var video in videosToAdd)
             {
+                count++;
                 video.Channel = channel;
             }
             videoDbContext.AddRange(videosToAdd);
-            if (string.IsNullOrEmpty(response.Continuation))
+            if (string.IsNullOrEmpty(response.Continuation) && !channel.ScrapedToOldest)
             {
+                channel.VideoCount = count;
                 channel.ScrapedToOldest = true;
             }
             channel.DateLastScraped = DateTime.UtcNow;
@@ -102,7 +105,7 @@ public class VideoFetchJob : IJob
             {
                 Id = z.Id,
                 Title = z.Title,
-                ChannelName = z.Channel.Name,
+                ChannelName = channel.Name,
                 ChannelId = z.ChannelId
             }));
             request.Continuation = response.Continuation;
@@ -117,7 +120,7 @@ public class VideoFetchJob : IJob
 
     private VideoEntity TranslateToEntity(VideoObject videoObject)
     {
-        var videoThumnails = videoObject.VideoThumbnails.Select(MakeUrlRelative);
+        var videoThumnails = videoObject.VideoThumbnails?.Select(MakeUrlRelative);
         var thumbnailsJson = System.Text.Json.JsonSerializer.Serialize(videoThumnails);
         return new VideoEntity
         {
@@ -130,10 +133,8 @@ public class VideoFetchJob : IJob
             ThumbnailsJson = thumbnailsJson,
             Description = videoObject.Description,
             ViewCount = videoObject.ViewCount,
-            ViewCountText = videoObject.ViewCountText,
             LengthSeconds = videoObject.LengthSeconds,
             Published = videoObject.Published,
-            PublishedText = videoObject.PublishedText,
             PremiereTimestamp = videoObject.PremiereTimestamp,
             LiveNow = videoObject.LiveNow,
             Premium = videoObject.Premium,

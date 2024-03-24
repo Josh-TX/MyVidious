@@ -24,12 +24,12 @@ public class InvidiousAPIAccess
         }
         var json = await response.Content.ReadAsStringAsync();
         var data = System.Text.Json.JsonSerializer.Deserialize<VideoResponse>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true});
-        return data;
+        return data!;
     }
 
     public async Task<IEnumerable<SearchResponseBase>> Search(SearchRequest request)
     {
-        var queryDict = new Dictionary<string, string>();
+        var queryDict = new Dictionary<string, string?>();
         if (!string.IsNullOrEmpty(request.Q))
         {
             queryDict.Add("q", request.Q);
@@ -92,7 +92,7 @@ public class InvidiousAPIAccess
 
     public async Task<ChannelVideosResponse> GetChannelVideos(string channelId, ChannelVideosRequest request)
     {
-        var queryDict = new Dictionary<string, string>();
+        var queryDict = new Dictionary<string, string?>();
         if (!string.IsNullOrEmpty(request.Sort_by))
         {
             queryDict.Add("sort_by", request.Sort_by);

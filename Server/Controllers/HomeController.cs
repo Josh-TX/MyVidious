@@ -41,6 +41,10 @@ namespace MyVidious.Controllers
             }).ToList();
             return View("Root", foundAlgorithms);
         }
+        
+        private const int EST_VIDEO_COUNT = 100;
+
+
         [Route("{username}/{algorithmName}")]
         [HttpGet]
         public async Task<IActionResult> ViewAlgorithm([FromRoute] string username, [FromRoute] string algorithmName)
@@ -50,7 +54,13 @@ namespace MyVidious.Controllers
             {
                 return View("NotFound");
             }
-            var itemInfos = await _videoDbContext.AlgorithmItemInfos.Where(z => z.AlgorithmId == algorithmEntity.Id).ToListAsync();
+            var itemInfos = await _videoDbContext.GetAlgorithmItemInfos().Where(z => z.AlgorithmId == algorithmEntity.Id).ToListAsync();
+            var sumWeight = itemInfos.Sum(z =>
+            {
+                return z.ChannelCount.HasValue
+                    ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
+                    : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0);
+            });
             var result = new LoadAlgorithmResult
             {
                 AlgorithmId = algorithmEntity.Id,
@@ -61,12 +71,20 @@ namespace MyVidious.Controllers
                     MaxChannelWeight = z.MaxChannelWeight,
                     WeightMultiplier = z.WeightMultiplier,
                     Name = z.Name,
+                    VideoCount = z.VideoCount,
+                    FailureCount = z.FailureCount,
+                    EstimatedWeight = z.ChannelCount.HasValue
+                        ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
+                        : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
                 }),
                 Description = algorithmEntity.Description,
                 AlgorithmName = algorithmEntity.Name,
                 Username = algorithmEntity.Username,
+                EstimatedSumWeight = sumWeight,
             };
             return View("Algorithm", result);
         }
+
+
     }
 }

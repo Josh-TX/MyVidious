@@ -12,6 +12,19 @@
         small {
             color: #888;
         }
+        td {
+            padding: 12px 8px;
+        }
+        th {
+            padding: 8px;
+        }
+        table {
+            border-collapse: collapse;
+            text-align: left;
+        }
+        tr {
+            border-bottom: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -20,15 +33,28 @@
     <small>Description</small>
     <p>@Model.Description</p>
     <small>Channels in Algorithm</small>
-    <ul>
+    <table style="margin-top: 16px;">
+        <tr>
+            <th>name</th>
+            <th>quantity</th>
+            <th>% of algorithm</th>
+        </tr>
         @foreach (var item in Model.AlgorithmItems)
         {
-            <li>@item.Name</li>
+            
+            double percentage = Math.Round(item.EstimatedWeight / Model.EstimatedSumWeight * 100, 1);
+            <tr>
+                <td>
+                    @item.Name
+                </td>
+                <td>
+                    @item.VideoCount channels
+                </td>
+                <td>
+                    @percentage %
+                </td>
+            </tr>
         }
-    </ul>
-    @if (Model.AlgorithmItems.Count() == 0)
-    {
-        <p>No Channels in Algorithm</p>
-    }
+    </table>
 </body>
 </html>

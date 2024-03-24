@@ -3,7 +3,7 @@ namespace MyVidious.Models.Admin;
 public class FoundAlgorithm
 {
     public int AlgorithmId { get; set; }
-    public string Username { get; set; }
-    public string AlgorithmName { get; set; }
-    public string Description { get; set; }
+    public required string Username { get; set; }
+    public required string AlgorithmName { get; set; }
+    public string? Description { get; set; }
 }

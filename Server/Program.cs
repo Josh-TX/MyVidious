@@ -131,17 +131,3 @@ static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirecto
         }
         return existingRedirector(context);
     };
-
-
-public class DebugOutputTraceListener : TraceListener
-{
-    public override void Write(string message)
-    {
-        Debug.Write(message);
-    }
-
-    public override void WriteLine(string message)
-    {
-        Debug.WriteLine(message);
-    }
-}

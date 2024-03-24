@@ -5,7 +5,7 @@ namespace MyVidious.Models.Invidious;
 /// </summary>
 public class ChannelVideosResponse
 {
-    public IEnumerable<VideoObject> Videos { get; set; }
+    public required IEnumerable<VideoObject> Videos { get; set; }
 
     /// <summary>
     /// If there are no more videos to load, this will be null/missing

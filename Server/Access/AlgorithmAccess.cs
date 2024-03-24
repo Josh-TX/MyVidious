@@ -66,7 +66,7 @@ public class AlgorithmAccess
     {
         var id = _getAlgorithmId(username, algorithmName)!.Value;
         //this doesn't support channelGroups atm, but it should eventually
-        var channelIds = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id && z.ChannelId.HasValue).Select(z => z.ChannelId.Value).ToList();
+        var channelIds = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id && z.ChannelId.HasValue).Select(z => z.ChannelId!.Value).ToList();
         return channelIds;
     }
 
@@ -163,7 +163,9 @@ public class AlgorithmAccess
 
     private RecommendedVideo TranslateToRecommended(VideoEntity video)
     {
-        var thumbnails = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList();
+        var thumbnails = video.ThumbnailsJson != null 
+            ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
+            : Enumerable.Empty<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
         return new RecommendedVideo
         {
@@ -175,13 +177,15 @@ public class AlgorithmAccess
             VideoId = video.UniqueId,
             VideoThumbnails = thumbnails,
             ViewCount = video.ViewCount,
-            ViewCountText = video.ViewCountText
+            ViewCountText = Helpers.FormatViews(video.ViewCount)
         };
     }
 
     private VideoObject TranslateToVideoObject(VideoEntity video)
     {
-        var thumbnails = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList();
+        var thumbnails = video.ThumbnailsJson != null
+            ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
+            : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
         return new VideoObject
         {
@@ -200,10 +204,10 @@ public class AlgorithmAccess
 
             LengthSeconds = video.LengthSeconds,
             ViewCount = video.ViewCount,
-            ViewCountText = video.ViewCountText,
+            ViewCountText = Helpers.FormatViews(video.ViewCount),
 
             Published = video.Published,
-            PublishedText = video.PublishedText,
+            PublishedText = Helpers.GetPublishedText(video.Published),
             PremiereTimestamp = video.PremiereTimestamp,
             LiveNow = video.LiveNow,
             Premium = video.Premium,
@@ -213,7 +217,9 @@ public class AlgorithmAccess
 
     private PopularVideo TranslateToPopularVideo(VideoEntity video)
     {
-        var thumbnails = System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList();
+        var thumbnails = video.ThumbnailsJson != null 
+            ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
+            : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
         return new PopularVideo
         {
@@ -231,7 +237,7 @@ public class AlgorithmAccess
             AuthorUrl = video.AuthorUrl,
 
             Published = video.Published,
-            PublishedText = video.PublishedText,
+            PublishedText = Helpers.GetPublishedText(video.Published),
         };
     }
 }

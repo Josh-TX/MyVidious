@@ -10,5 +10,8 @@ public class AlgorithmItemInfoEntity
     public int? ChannelId { get; set; }
     public double WeightMultiplier { get; set; }
     public int MaxChannelWeight { get; set; }
-    public string Name { get; set; }
+    public required string Name { get; set; }
+    public int? VideoCount { get; set; }
+    public int FailureCount { get; set; }
+    public int? ChannelCount { get; set; }
 }

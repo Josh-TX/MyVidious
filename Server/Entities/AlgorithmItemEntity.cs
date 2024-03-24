@@ -16,5 +16,5 @@ public class AlgorithmItemEntity
     public int MaxChannelWeight { get; set; }
 
     [ForeignKey("AlgorithmId")]
-    public AlgorithmEntity Algorithm { get; set; }
+    public AlgorithmEntity? Algorithm { get; set; }
 }

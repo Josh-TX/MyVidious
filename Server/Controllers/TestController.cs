@@ -47,7 +47,7 @@ namespace MyVidious.Controllers
             {
                 ChannelId = z.ChannelId,
                 Id = z.Id,
-                ChannelName = z.Channel.Name,
+                ChannelName = z.Channel!.Name,
                 Title = z.Title
             }));
             return Ok();

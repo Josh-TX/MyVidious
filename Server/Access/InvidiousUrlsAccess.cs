@@ -52,8 +52,8 @@ public class InvidiousUrlsAccess : IJob
         }
         var json = await response.Content.ReadAsStringAsync();
         var instances = Newtonsoft.Json.JsonConvert.DeserializeObject<IEnumerable<Instance>>(json);
-        var instanceDetails = instances.Select(z => z.Details);
-        var invidiousUrls = instanceDetails!.Where(z => z.Api == true && z.Type == "https" && z.Cors == true).Select(z => z.Uri.TrimEnd('/')).ToList();
+        var instanceDetails = instances!.Select(z => z.Details);
+        var invidiousUrls = instanceDetails!.Where(z => z?.Api == true && z.Type == "https" && z.Cors == true).Select(z => z!.Uri.TrimEnd('/')).ToList();
         return invidiousUrls;
     }
 
@@ -113,7 +113,7 @@ public class InvidiousUrlsAccess : IJob
             return (objectType == typeof(Instance));
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
         {
             JArray ja = JArray.Load(reader);
             Instance stop = new Instance();
@@ -122,7 +122,7 @@ public class InvidiousUrlsAccess : IJob
             return stop;
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             throw new NotImplementedException();
         }
@@ -131,15 +131,15 @@ public class InvidiousUrlsAccess : IJob
     [JsonConverter(typeof(InstanceConverter))]
     private class Instance
     {
-        public string Name { get; set; }
-        public InstancesResponseDetails Details { get; set; }
+        public string? Name { get; set; }
+        public InstancesResponseDetails? Details { get; set; }
     }
 
     private class InstancesResponseDetails
     {
         public bool? Api { get; set; }
         public bool? Cors { get; set; }
-        public string Type { get; set; }
-        public string Uri { get; set; }
+        public string? Type { get; set; }
+        public required string Uri { get; set; }
     }
 }
