@@ -1,6 +1,6 @@
 <div style="padding: 8px 16px;">
-    <h3 *ngIf="!algorithmId">New Algorithm will be available at <span class="text-primary">{{getPath()}}</span></h3>
     <div style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 *ngIf="!algorithmId">New Algorithm will be available at <span class="text-primary">{{getPath()}}</span></h3>
         <h3 *ngIf="algorithmId">Algorithm available at <span class="text-primary">{{getPath()}}</span></h3>
         <button mat-raised-button [matMenuTriggerFor]="menu" aria-label="Example icon-button with a menu">
             Actions

@@ -46,18 +46,7 @@ export class ManageAlgorithmComponent {
         this.routeSub = this.route.params.subscribe(params => {
             if (params["id"] && parseInt(params["id"])){
                 this.algorithmId = parseInt(params["id"]);
-                this.client.getAlgorithm(params["id"]).subscribe(result => {
-                    this.name = result.algorithmName!;
-                    this.originalName = this.name;
-                    this.description = result.description!;
-                    this.items = result.algorithmItems!.map(z => ({
-                        name: z.name,
-                        channelGroupId: z.channelGroupId,
-                        channelId: z.channelId,
-                        maxChannelWeight: z.maxChannelWeight,
-                        weightMultiplier: z.weightMultiplier,
-                    }));
-                });
+                this.loadAlgorithm(this.algorithmId);
                 if (this.table){
                     this.table.renderRows();
                 }
@@ -65,6 +54,21 @@ export class ManageAlgorithmComponent {
                 this.algorithmId = undefined;
             }
         })
+    }
+
+    private loadAlgorithm(algorithmId: number){
+        this.client.getAlgorithm(algorithmId).subscribe(result => {
+            this.name = result.algorithmName!;
+            this.originalName = this.name;
+            this.description = result.description!;
+            this.items = result.algorithmItems!.map(z => ({
+                name: z.name,
+                channelGroupId: z.channelGroupId,
+                channelId: z.channelId,
+                maxChannelWeight: z.maxChannelWeight,
+                weightMultiplier: z.weightMultiplier,
+            }));
+        });
     }
 
     ngOnDestroy(){
@@ -125,7 +129,11 @@ export class ManageAlgorithmComponent {
         this.client.updateAlgorithm(request).subscribe({
             next: id => {
                 this.snackBar.open("Algorithm Saved. Changes may take a few minutes to take effect on the API", "", { duration: 3000 });
-                this.router.navigate(["/algorithm", id])
+                if (!this.algorithmId){
+                    this.router.navigate(["/algorithm", id])
+                } else {
+                    this.loadAlgorithm(this.algorithmId);
+                }
             },
             error: err => {
                 this.snackBar.open(err, "", { panelClass: "snackbar-error", duration: 3000 });
