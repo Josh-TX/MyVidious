@@ -1,8 +1,13 @@
 <div style="padding: 8px 16px;">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <h3 *ngIf="!algorithmId">New Algorithm will be available at <span class="text-primary">{{getPath()}}</span></h3>
-        <h3 *ngIf="algorithmId">Algorithm available at <span class="text-primary">{{getPath()}}</span></h3>
-        <button mat-raised-button [matMenuTriggerFor]="menu" aria-label="Example icon-button with a menu">
+    <div style="display: flex; align-items: center;">
+        <h3 *ngIf="!algorithmId">New Algorithm will be available at:</h3>
+        <h3 *ngIf="algorithmId">Algorithm available at:</h3>
+        <button mat-raised-button style="margin-left: 16px;" [disabled]="!name" (click)="copy()">
+            {{getPath()}}
+            <mat-icon>content_copy</mat-icon>
+        </button>
+        <div style="flex-grow: 1;"></div>
+        <button mat-raised-button [matMenuTriggerFor]="menu">
             Actions
             <mat-icon>arrow_drop_down</mat-icon>
         </button>

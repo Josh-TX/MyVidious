@@ -57,12 +57,15 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 
 
 services.AddDbContext<VideoDbContext>(options =>
-    options
-        .UseNpgsql(builder.Configuration["ConnectionString"])
-        .UseSnakeCaseNamingConvention()
-);
-Console.WriteLine("CURRENT DIRECTORY");
-Console.WriteLine(Directory.GetCurrentDirectory());
+{
+
+    options.UseNpgsql(builder.Configuration["ConnectionString"]);
+    options.UseSnakeCaseNamingConvention();
+#if DEBUG
+    options.EnableSensitiveDataLogging();
+#endif
+
+});
 
 
 services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));

@@ -14,11 +14,13 @@ public class AdminAccess
     private MeilisearchAccess _meilisearchAccess;
     private ISchedulerFactory _schedulerFactory;
     private GlobalCache _globalCache;
+    private AlgorithmAccess _algorithmAccess;
 
     public AdminAccess(
         VideoDbContext videoDbContext,
         InvidiousAPIAccess invidiousApiAccess,
         MeilisearchAccess meilisearchAccess,
+        AlgorithmAccess algorithmAccess,
         ISchedulerFactory schedulerFactory,
         GlobalCache globalCache
         )
@@ -28,7 +30,7 @@ public class AdminAccess
         _meilisearchAccess = meilisearchAccess;
         _schedulerFactory = schedulerFactory;
         _globalCache = globalCache;
-
+        _algorithmAccess = algorithmAccess;
     }
 
     public async Task<IEnumerable<FoundChannel>> SearchChannels(string searchText)
@@ -86,7 +88,7 @@ public class AdminAccess
         var algorithmsQuery = _videoDbContext.Algorithms.AsQueryable();
         if (!string.IsNullOrEmpty(username))
         {
-            algorithmsQuery = algorithmsQuery.Where(z => z.Username == username);
+            algorithmsQuery = algorithmsQuery.Where(z => z.Username.ToLower() == username.ToLower());
         }
         var algorithms = await algorithmsQuery.ToListAsync();
 
@@ -163,13 +165,13 @@ public class AdminAccess
                 Name = request.Name,
                 Username = username,
             };
-        if (algorithm.Username != username)
+        if (algorithm.Username.ToLower() != username.ToLower())
         {
             throw new WebRequestException(400, "Algorithm belongs to a different user");
         }
         if (!request.AlgorithmId.HasValue || algorithm.Name?.ToLower() != request.Name.ToLower())
         {
-            var nameConflicts = _videoDbContext.Algorithms.Where(z => z.Name == request.Name && z.Username == username).Any();
+            var nameConflicts = _videoDbContext.Algorithms.Where(z => z.Name.ToLower() == request.Name.ToLower() && z.Username.ToLower() == username.ToLower()).Any();
             if (nameConflicts)
             {
                 throw new WebRequestException(400, $"user {username} already has an Algorithm named {request.Name}");
@@ -292,5 +294,6 @@ public class AdminAccess
         }
         _videoDbContext.Remove(algorithm);
         _videoDbContext.SaveChanges();
+        _algorithmAccess.BustAlgorithmCache(algorithm.Username, algorithm.Name);
     }
 }

@@ -92,6 +92,7 @@ export class ManageAlgorithmComponent {
             }));
         });
     }
+    
 
     ngOnDestroy(){
         this.routeSub.unsubscribe();
@@ -120,6 +121,17 @@ export class ManageAlgorithmComponent {
         this.items = this.items.filter(z => z != item);
         this.table.renderRows();
     }
+
+    copy(){
+        navigator.clipboard.writeText(this.getPath())
+            .then(() => {
+                this.snackBar.open("copied to clipboard", "", { duration: 3000 });
+            })
+            .catch(err => {
+                this.snackBar.open("unable to copy to clipboard", "", { panelClass: "snackbar-error", duration: 3000 });
+            });
+    }
+
     save(){
         if (!this.name){
             this.snackBar.open("algorithm name required", "", { panelClass: "snackbar-error", duration: 3000 });

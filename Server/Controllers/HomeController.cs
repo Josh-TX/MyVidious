@@ -22,11 +22,16 @@ namespace MyVidious.Controllers
     {
         private readonly VideoDbContext _videoDbContext;
         private readonly InvidiousAPIAccess _invidiousAPIAccess;
+        private readonly AlgorithmAccess _algorithmAccess;
 
-        public HomeController(InvidiousAPIAccess invidiousAPIAccess, VideoDbContext videoDbContext)
+        public HomeController(
+            InvidiousAPIAccess invidiousAPIAccess, 
+            VideoDbContext videoDbContext,
+            AlgorithmAccess algorithmAccess)
         {
             _videoDbContext = videoDbContext;
             _invidiousAPIAccess = invidiousAPIAccess;
+            _algorithmAccess = algorithmAccess;
         }
         [HttpGet("")]
         public async Task<IActionResult> GetRootPage()
@@ -49,11 +54,13 @@ namespace MyVidious.Controllers
         [HttpGet]
         public async Task<IActionResult> ViewAlgorithm([FromRoute] string username, [FromRoute] string algorithmName)
         {
-            var algorithmEntity = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username == username && z.Name == algorithmName);
-            if (algorithmEntity == null)
+            //since we cache the algorithmId, this will usually be more efficient
+            var algorithmId = _algorithmAccess.GetAlgorithmId(username, algorithmName);
+            if (!algorithmId.HasValue)
             {
                 return View("NotFound");
             }
+            var algorithmEntity = _videoDbContext.Algorithms.First(z => z.Id == algorithmId);
             var itemInfos = await _videoDbContext.GetAlgorithmItemInfos().Where(z => z.AlgorithmId == algorithmEntity.Id).ToListAsync();
             var sumWeight = itemInfos.Sum(z =>
             {

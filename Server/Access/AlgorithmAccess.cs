@@ -2,6 +2,7 @@ using MyVidious.Data;
 using MyVidious.Models;
 using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
+using System.Collections.Concurrent;
 
 namespace MyVidious.Access;
 
@@ -70,19 +71,24 @@ public class AlgorithmAccess
         return channelIds;
     }
 
+    public void BustAlgorithmCache(string username, string algorithmName)
+    {
+        //this is important because if an algorithm was deleted, and then another one was created with same username & algorithmName, it'd map to the wrong Id
+        _algorithmNameIdMap.TryRemove((username.ToLower(), algorithmName.ToLower()), out _);
+    }
 
-    private static Dictionary<(string, string), int?> _algorithmNameIdMap = new Dictionary<(string, string), int?>();
+
+    private static ConcurrentDictionary<(string, string), int?> _algorithmNameIdMap = new ConcurrentDictionary<(string, string), int?>();
 
     private int? _getAlgorithmId(string username, string algorithmName)
     {
-        username = username.ToLower();
-        if (_algorithmNameIdMap.TryGetValue((username, algorithmName), out var id))
+        if (_algorithmNameIdMap.TryGetValue((username.ToLower(), algorithmName.ToLower()), out var id))
         {
             return id;
         }
-        var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username == username && z.Name == algorithmName);
+        var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username.ToLower() == username.ToLower() && z.Name.ToLower() == algorithmName.ToLower());
         var foundId = foundAlg?.Id;
-        _algorithmNameIdMap.Add((username, algorithmName), foundId);
+        _algorithmNameIdMap.TryAdd((username.ToLower(), algorithmName.ToLower()), foundId);
         return foundId;
     }
 
