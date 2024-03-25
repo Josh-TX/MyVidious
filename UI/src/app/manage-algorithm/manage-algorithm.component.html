@@ -54,8 +54,16 @@
             <td mat-cell *matCellDef="let item"> {{item.description}} </td>
         </ng-container>
 
+        <ng-container matColumnDef="count">
+            <th mat-header-cell *matHeaderCellDef> Count </th>
+            <td mat-cell *matCellDef="let item"> {{item.videoCount}} </td>
+        </ng-container>
+
         <ng-container matColumnDef="maxChannelWeight">
-            <th mat-header-cell *matHeaderCellDef> Max Channel Weight </th>
+            <th mat-header-cell *matHeaderCellDef > 
+                Max Channel Weight
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="Normally a channel's weight is the # of videos, but you can use this to prevent large channels from having too much weight">info</mat-icon>
+            </th>
             <td mat-cell *matCellDef="let item">
                 <input type="number" [(ngModel)]="item.maxChannelWeight">
             </td>
@@ -63,9 +71,31 @@
 
 
         <ng-container matColumnDef="weightMultiplier">
-            <th mat-header-cell *matHeaderCellDef> Weight Multiplier </th>
+            <th mat-header-cell *matHeaderCellDef> 
+                Weight Multiplier 
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight">info</mat-icon>
+            </th>
             <td mat-cell *matCellDef="let item">
                 <input type="number" [(ngModel)]="item.weightMultiplier">
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="weight">
+            <th mat-header-cell *matHeaderCellDef> 
+                Calculated Weight 
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="The weight is merely used to determine the percent of algorithm">info</mat-icon>
+            </th>
+            <td mat-cell *matCellDef="let item">
+                {{getWeight(item)}}
+                <mat-icon *ngIf="isGuess(item)" style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="This is assuming the channel has precisely 100 videos. We won't know until we scrape">warning</mat-icon>
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="percent">
+            <th mat-header-cell *matHeaderCellDef> 
+                % of Algorithm 
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="On average, the algorithm will recommend videos in accordance with this percentage">info</mat-icon>
+            </th>
+            <td mat-cell *matCellDef="let item">
+                {{getPercent(item)}}
             </td>
         </ng-container>
 

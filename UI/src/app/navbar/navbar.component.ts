@@ -10,17 +10,16 @@ import { AuthService } from "../services/auth.service";
     templateUrl: './navbar.component.html'
 })
 export class NavbarComponent {
-    constructor(private authService: AuthService, private router: Router){
+    constructor(
+        private authService: AuthService, 
+        private router: Router
+        ){
         this.authService.getUserInfoAsync().subscribe(z => this.userInfo = z)
     }
     userInfo: UserInfo | undefined  
 
     logout(){
-        this.authService.setUserInfo({
-            username: undefined,
-            isAdmin: false,
-            anyUsers: true
-        });
+        this.authService.logout();
         this.router.navigate(["/login"])
     }
 }

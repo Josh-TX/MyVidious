@@ -38,6 +38,7 @@
             <th>name</th>
             <th>quantity</th>
             <th>% of algorithm</th>
+            <th></th>
         </tr>
         @foreach (var item in Model.AlgorithmItems)
         {
@@ -53,8 +54,18 @@
                 <td>
                     @percentage %
                 </td>
+                <td>
+                    @if (item.FailureCount > 0)
+                    {
+                        <span>error scraping videos</span>
+                    }
+                </td>
             </tr>
         }
     </table>
+    @if (Model.AlgorithmItems.Count() == 0)
+    {
+        <p>No Channels in Algorithm</p>
+    }
 </body>
 </html>

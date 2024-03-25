@@ -3,13 +3,18 @@ import { Component } from "@angular/core";
 import { Client } from "generated";
 import { AuthService } from "../services/auth.service";
 import { Router } from "@angular/router";
+import { LoaderService } from "../services/loader.service";
 
 
 @Component({
     templateUrl: './login.component.html'
 })
 export class LoginComponent {
-    constructor(private client: Client, private authService: AuthService, private router: Router){
+    constructor(
+        private client: Client, 
+        private authService: AuthService, 
+        private router: Router,
+        private loader: LoaderService){
 
     }
 
@@ -17,6 +22,7 @@ export class LoginComponent {
     password: string = "";
     error: string = "";
     login(){
+        this.loader.setIsLoading(true);
         this.error = "";
         this.client.login({ username: this.username, password: this.password}).subscribe({
             next: userInfo => {
@@ -25,6 +31,9 @@ export class LoginComponent {
             },
             error: error => {
                 this.error = "Invalid Credentials";
+            },
+            complete: () => {
+                this.loader.setIsLoading(false);
             }
         });
     }

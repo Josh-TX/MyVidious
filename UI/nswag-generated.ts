@@ -1064,8 +1064,8 @@ export class Client {
 
 export interface AuthorThumbnail {
     url?: string | undefined;
-    width?: number;
-    height?: number;
+    width?: number | undefined;
+    height?: number | undefined;
 }
 
 export interface ChangePasswordRequest {
@@ -1136,8 +1136,8 @@ export interface FoundChannel {
 
 export interface ImageObject {
     url?: string | undefined;
-    width?: number;
-    height?: number;
+    width?: number | undefined;
+    height?: number | undefined;
 }
 
 export interface LoadAlgorithmItem {
@@ -1146,14 +1146,19 @@ export interface LoadAlgorithmItem {
     weightMultiplier?: number;
     maxChannelWeight?: number;
     name?: string | undefined;
+    videoCount?: number | undefined;
+    failureCount?: number;
+    channelCount?: number | undefined;
+    estimatedWeight?: number;
 }
 
 export interface LoadAlgorithmResult {
-    algorithmId?: number | undefined;
+    algorithmId?: number;
     username?: string | undefined;
     algorithmName?: string | undefined;
     description?: string | undefined;
     algorithmItems?: LoadAlgorithmItem[] | undefined;
+    estimatedSumWeight?: number;
 }
 
 export interface LoginRequest {
@@ -1288,8 +1293,8 @@ export interface VideoResponse {
 export interface VideoThumbnail {
     quality?: string | undefined;
     url?: string | undefined;
-    width?: number;
-    height?: number;
+    width?: number | undefined;
+    height?: number | undefined;
 }
 
 export class ApiException extends Error {

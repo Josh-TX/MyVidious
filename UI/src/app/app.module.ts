@@ -3,6 +3,7 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { LoaderComponent } from './loader/loader.component';
 import { Client } from 'generated';
 import { HttpClientModule  } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
@@ -20,6 +21,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { ManageAlgorithmComponent } from './manage-algorithm/manage-algorithm.component';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [
@@ -30,6 +32,7 @@ import { MatTableModule } from '@angular/material/table';
     DashboardComponent,
     ManageAlgorithmComponent,
     ChannelSearchComponent,
+    LoaderComponent,
   ],
   imports: [
     BrowserModule,
@@ -43,7 +46,8 @@ import { MatTableModule } from '@angular/material/table';
     MatIconModule,
     MatInputModule,
     MatSnackBarModule,
-    MatTableModule
+    MatTableModule,
+    MatTooltipModule
   ],
   providers: [Client, provideAnimationsAsync()],
   bootstrap: [AppComponent]

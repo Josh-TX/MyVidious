@@ -33,7 +33,6 @@ public class VideoFetchJob : IJob
 
     async Task IJob.Execute(IJobExecutionContext context)
     {
-        System.Diagnostics.Debug.WriteLine("VideoFetchJob: " + DateTime.Now);
         await UpdateChannelVideos(context.CancellationToken);
     }
 
@@ -41,8 +40,9 @@ public class VideoFetchJob : IJob
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var videoDbContext = scope.ServiceProvider.GetRequiredService<VideoDbContext>();
+        var cutoff = DateTime.UtcNow.AddHours(-48);
         var incompleteChannels = videoDbContext.Channels.Where(z => z.DateLastScraped == null || !z.ScrapedToOldest).Take(10).ToList();
-        var sortedChannels = incompleteChannels.Where(z => z.DateLastScraped == null).Concat(incompleteChannels.Where(z => z.DateLastScraped != null && z.ScrapeFailureCount < 3));
+        var sortedChannels = incompleteChannels.Where(z => z.DateLastScraped == null).Concat(incompleteChannels.Where(z => z.DateLastScraped != null && (z.ScrapeFailureCount < 3 || z.DateLastScraped < cutoff)));
         foreach(var channel in sortedChannels)
         {
             await UpdateChannelVideos(stoppingToken, videoDbContext, channel);
@@ -52,8 +52,7 @@ public class VideoFetchJob : IJob
             }
         }
 
-        var cutoff = DateTime.UtcNow.AddHours(-48);
-        var channelToUpdate = videoDbContext.Channels.Where(z => z.DateLastScraped < cutoff).ToList();
+        var channelToUpdate = videoDbContext.Channels.Where(z => z.ScrapedToOldest && z.DateLastScraped < cutoff).ToList();
         foreach (var channel in channelToUpdate)
         {
             await UpdateChannelVideos(stoppingToken, videoDbContext, channel);
@@ -80,11 +79,13 @@ public class VideoFetchJob : IJob
             }
             catch (Exception)
             {
+                Console.WriteLine($"Failed to scrape videos for channel {channel.Name}");
                 channel.ScrapeFailureCount++;
                 channel.DateLastScraped = DateTime.UtcNow;
                 videoDbContext.SaveChanges();
                 return;
             }
+            channel.ScrapeFailureCount = 0;//we reset this each time there's a success
             var uniqueIds = response.Videos.Select(z => z.VideoId).ToList();
             var existingUniqueIds = videoDbContext.Videos.Where(z => uniqueIds.Contains(z.UniqueId)).Select(z => z.UniqueId).ToList();
             var videosToAdd = response.Videos.Where(z => !existingUniqueIds.Contains(z.VideoId)).Select(TranslateToEntity).ToList();
@@ -94,12 +95,19 @@ public class VideoFetchJob : IJob
                 video.Channel = channel;
             }
             videoDbContext.AddRange(videosToAdd);
-            if (string.IsNullOrEmpty(response.Continuation) && !channel.ScrapedToOldest)
+            if (!channel.ScrapedToOldest)
             {
                 channel.VideoCount = count;
+            } else
+            {
+                channel.VideoCount = channel.VideoCount + videosToAdd.Count;
+            }
+            if (string.IsNullOrEmpty(response.Continuation))
+            {
                 channel.ScrapedToOldest = true;
             }
             channel.DateLastScraped = DateTime.UtcNow;
+            Console.WriteLine($"scraped {videosToAdd.Count} videos for channel {channel.Name}");
             videoDbContext.SaveChanges();
             await _meilisearchAccess.AddVideos(videosToAdd.Select(z => new VideoMeilisearch
             {

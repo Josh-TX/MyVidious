@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from "rxjs";
 import { AuthService } from "../services/auth.service";
 import { MatTable } from "@angular/material/table";
+import { LoaderService } from "../services/loader.service";
 
 
 
@@ -17,6 +18,7 @@ type AlgorithmItem = {
     maxChannelWeight?: number;
     name?: string | undefined;
     status?: string | undefined;
+    videoCount: number
 }
 
 @Component({
@@ -29,7 +31,8 @@ export class ManageAlgorithmComponent {
         private snackBar: MatSnackBar,
         private router: Router,
         private route: ActivatedRoute,
-        private authService: AuthService
+        private authService: AuthService,
+        private loader: LoaderService
         ){
     }
     originalName: string = "";
@@ -37,10 +40,11 @@ export class ManageAlgorithmComponent {
     description: string = "";
     items: AlgorithmItem[] = [];
     algorithmId: number | undefined;
+    weightExplanation = "The algorithm works by weighing channels, not videos. The channel's weight is equal to the # of videos (unless capped with max channel weight) multiplied by the weight multiplier.";
 
     @ViewChild("table") table!: MatTable<any>;
 
-    displayedColumns: string[] = ['type', 'name', 'maxChannelWeight', 'weightMultiplier', 'actions'];
+    displayedColumns: string[] = ['type', 'name', 'count', 'maxChannelWeight', 'weightMultiplier', 'weight', 'percent', 'actions'];
     private routeSub!: Subscription;
     ngOnInit(){
         this.routeSub = this.route.params.subscribe(params => {
@@ -56,8 +60,25 @@ export class ManageAlgorithmComponent {
         })
     }
 
+    getPercent(item: AlgorithmItem): string{
+        var sumWeight = this.items.map(z => this.getWeight(z)).reduce((p, a) => p + a, 0);
+        var percent =  this.getWeight(item) / sumWeight
+        return (Math.round(percent * 1000) / 10) + " %";
+    }
+
+    getWeight(item: AlgorithmItem): number{
+        var videoCount = item.videoCount > 0 || item.channelId != null ? item.videoCount : 100;
+        return Math.min(videoCount, 100) * Math.max(0, item.weightMultiplier || 0);
+    }
+
+    isGuess(item: AlgorithmItem): boolean{
+        return !(item.videoCount > 0 || item.channelId != null);
+    }
+
     private loadAlgorithm(algorithmId: number){
+        this.loader.setIsLoading(true);
         this.client.getAlgorithm(algorithmId).subscribe(result => {
+            this.loader.setIsLoading(false);
             this.name = result.algorithmName!;
             this.originalName = this.name;
             this.description = result.description!;
@@ -67,6 +88,7 @@ export class ManageAlgorithmComponent {
                 channelId: z.channelId,
                 maxChannelWeight: z.maxChannelWeight,
                 weightMultiplier: z.weightMultiplier,
+                videoCount: z.videoCount || 0
             }));
         });
     }
@@ -89,7 +111,8 @@ export class ManageAlgorithmComponent {
             weightMultiplier: 1,
             maxChannelWeight: 100,
             name: channel.author,
-            status: "added"
+            status: "added",
+            videoCount: channel.videoCount!,
         })
         this.table.renderRows();
     }
@@ -126,6 +149,7 @@ export class ManageAlgorithmComponent {
                 weightMultiplier: z.weightMultiplier
             }))
         }
+        this.loader.setIsLoading(true);
         this.client.updateAlgorithm(request).subscribe({
             next: id => {
                 this.snackBar.open("Algorithm Saved. Changes may take a few minutes to take effect on the API", "", { duration: 3000 });
@@ -137,11 +161,13 @@ export class ManageAlgorithmComponent {
             },
             error: err => {
                 this.snackBar.open(err, "", { panelClass: "snackbar-error", duration: 3000 });
+                this.loader.setIsLoading(false);
             }
         })
     }
 
     delete(){
+        this.loader.setIsLoading(true);
         if (confirm("Are you sure you want to delete this algorithm?") && this.algorithmId){
             this.client.deleteAlgorithm(this.algorithmId).subscribe(z => {
                 this.snackBar.open("Algorithm Deleted", "", { duration: 3000 });

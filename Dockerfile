@@ -23,6 +23,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
 WORKDIR /app
 COPY --from=dotnet-build /app .
-COPY Server/Scripts/. Scripts/.
+COPY Server/Sql/. Sql/.
 
 ENTRYPOINT ["./MyVidious"]

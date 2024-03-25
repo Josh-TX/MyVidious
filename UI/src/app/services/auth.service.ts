@@ -34,4 +34,13 @@ export class AuthService {
         this.userInfo = userInfo;
         this.userInfoSubject.next(userInfo);
     }
+
+    logout(){
+        this.setUserInfo({
+            username: undefined,
+            isAdmin: false,
+            anyUsers: true
+        });
+        this.client.logout().subscribe();
+    }
 }
