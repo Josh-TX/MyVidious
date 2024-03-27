@@ -1,0 +1,1 @@
+docker build --target web-files --output=docker-stage -f Dockerfile.part1 .

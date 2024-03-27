@@ -12,3 +12,4 @@
 /nswag/obj
 /UI/node_modules
 /UI/.angular
+/docker-stage
