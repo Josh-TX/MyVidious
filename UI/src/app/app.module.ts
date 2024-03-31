@@ -22,6 +22,8 @@ import { ManageAlgorithmComponent } from './manage-algorithm/manage-algorithm.co
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTreeModule } from '@angular/material/tree';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 @NgModule({
   declarations: [
@@ -47,7 +49,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatInputModule,
     MatSnackBarModule,
     MatTableModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatTreeModule,
+    MatCheckboxModule
   ],
   providers: [Client, provideAnimationsAsync()],
   bootstrap: [AppComponent]

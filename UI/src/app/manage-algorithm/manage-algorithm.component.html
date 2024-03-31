@@ -7,11 +7,11 @@
             <mat-icon>content_copy</mat-icon>
         </button>
         <div style="flex-grow: 1;"></div>
-        <button mat-raised-button [matMenuTriggerFor]="menu">
+        <button mat-raised-button [matMenuTriggerFor]="deleteMenu">
             Actions
             <mat-icon>arrow_drop_down</mat-icon>
         </button>
-        <mat-menu #menu="matMenu">
+        <mat-menu #deleteMenu="matMenu">
             <button mat-menu-item (click)="delete()" [disabled]="!algorithmId">
                 <span>Delete Algorithm</span>
             </button>
@@ -36,17 +36,50 @@
             </button>
         </div>
     </div>
-    <div style="display: flex; gap: 16px; justify-content: center; align-items: center;">
+    <div style="display: flex; gap: 16px; align-items: center;">
+        <div style="flex: 1;"></div>
         <div>
             Add Channel
         </div>
         <channel-search style="flex-grow: 1; max-width: 700px;" (select)="addChannel($event)"></channel-search>
+        <div style="flex: 1;"></div>
+        <div>
+            <button mat-raised-button [matMenuTriggerFor]="selectedMenu" [disabled]="!getSelectedCount()">
+                {{getSelectedCount()}} selected
+                <mat-icon>arrow_drop_down</mat-icon>
+            </button>
+            <mat-menu #selectedMenu="matMenu">
+                <button mat-menu-item (click)="removeSelected()">Remove</button>
+                <button mat-menu-item [matMenuTriggerFor]="folderMenu">Move to Folder</button>
+            </mat-menu>
+            <mat-menu #folderMenu="matMenu">
+                <ng-container *ngFor="let folder of folders">
+                    <button mat-menu-item><mat-icon>folder</mat-icon> {{folder.name}}</button>
+                </ng-container>
+                <button mat-menu-item (click)="addToFolder()"><mat-icon>add</mat-icon> new folder</button>
+            </mat-menu>
+        </div>
     </div>
-    <table #table mat-table [dataSource]="items" class="mat-elevation-z8" style="margin-top: 16px;">
 
-        <ng-container matColumnDef="type">
-            <th mat-header-cell *matHeaderCellDef> Type </th>
-            <td mat-cell *matCellDef="let item"> channel </td>
+
+    <table #table mat-table [dataSource]="tableRows" class="mat-elevation-z8" style="margin-top: 16px;">
+
+        <ng-container matColumnDef="folder">
+            <th mat-header-cell *matHeaderCellDef>
+                <span [style.paddingLeft.px]="40"> Folder </span>
+            </th>
+            <td mat-cell *matCellDef="let item">
+                <div style="display: flex; align-items: center;" *ngIf="isFolder(item)">
+                    <button mat-icon-button (click)="toggleExpanded(item)">
+                        <mat-icon class="mat-icon-rtl-mirror">
+                            {{item.isExpanded ? 'expand_more' : 'chevron_right'}}
+                        </mat-icon>
+                    </button>
+                    <div>
+                        {{item.name}}
+                    </div>
+                </div>
+            </td>
         </ng-container>
 
         <ng-container matColumnDef="name">
@@ -65,9 +98,10 @@
         </ng-container>
 
         <ng-container matColumnDef="maxChannelWeight">
-            <th mat-header-cell *matHeaderCellDef > 
+            <th mat-header-cell *matHeaderCellDef>
                 Max Channel Weight
-                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="Normally a channel's weight is the # of videos, but you can use this to prevent large channels from having too much weight">info</mat-icon>
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="Normally a channel's weight is the # of videos, but you can use this to prevent large channels from having too much weight">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 <input type="number" [(ngModel)]="item.maxChannelWeight">
@@ -76,46 +110,54 @@
 
 
         <ng-container matColumnDef="weightMultiplier">
-            <th mat-header-cell *matHeaderCellDef> 
-                Weight Multiplier 
-                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight">info</mat-icon>
+            <th mat-header-cell *matHeaderCellDef>
+                Weight Multiplier
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 <input type="number" [(ngModel)]="item.weightMultiplier">
             </td>
         </ng-container>
         <ng-container matColumnDef="weight">
-            <th mat-header-cell *matHeaderCellDef> 
-                Calculated Weight 
-                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="The weight is merely used to determine the percent of algorithm">info</mat-icon>
+            <th mat-header-cell *matHeaderCellDef>
+                Calculated Weight
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="The weight is merely used to determine the percent of algorithm">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 {{getWeight(item)}}
-                <mat-icon *ngIf="isGuess(item)" style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="This is assuming the channel has precisely 100 videos. We won't know until we scrape">warning</mat-icon>
+                <mat-icon *ngIf="isGuess(item)" style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="This is assuming the channel has precisely 100 videos. We won't know until we scrape">warning</mat-icon>
             </td>
         </ng-container>
         <ng-container matColumnDef="percent">
-            <th mat-header-cell *matHeaderCellDef> 
-                % of Algorithm 
-                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px" matTooltip="On average, the algorithm will recommend videos in accordance with this percentage">info</mat-icon>
+            <th mat-header-cell *matHeaderCellDef>
+                % of Algorithm
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="On average, the algorithm will recommend videos in accordance with this percentage">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 {{getPercent(item)}}
             </td>
         </ng-container>
 
-        <!-- <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef> Status </th>
-            <td mat-cell *matCellDef="let item"> {{item.status}} </td>
-        </ng-container> -->
-
-        <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef> Actions </th>
+        <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox (change)="$event ? toggleAllRows() : null" color="primary" [checked]="isAllSelected()"
+                    [indeterminate]="!isAllSelected() && !isNoneSelected()">
+                </mat-checkbox>
+            </th>
             <td mat-cell *matCellDef="let item">
-                <button mat-raised-button (click)="remove(item)">Remove</button>
+                <mat-checkbox (change)="$event ? toggleSelected(item) : null" color="primary" [checked]="item.selected"
+                    [indeterminate]="item.selected == null">
+                </mat-checkbox>
             </td>
         </ng-container>
+
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
+
+    <hr>
 </div>
