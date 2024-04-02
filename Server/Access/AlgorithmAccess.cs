@@ -99,8 +99,9 @@ public class AlgorithmAccess
         {
             return cachedVideoIds;
         }
-        var videoIds = _videoDbContext.GetRandomAlgorithmVideos(algorithmId, 500);
-        var declusteredVideoIds = MergeDecluster(videoIds).Select(z => z.VideoId).ToList();
+        var algorithmItems = _videoDbContext.GetRandomAlgorithmVideos(algorithmId, 500);
+        algorithmItems = ApplyFactorIncrease(algorithmItems);
+        var declusteredVideoIds = algorithmItems.Decluster(z => z.ChannelId).Select(z => z.VideoId).ToList();
         _globalCache.SetRandomAlgorithmVideoIds(algorithmId, declusteredVideoIds);
         return declusteredVideoIds;
     }
@@ -112,39 +113,22 @@ public class AlgorithmAccess
         {
             return cachedVideoIds;
         }
-        var videoIds = _videoDbContext.GetRecentAlgorithmVideos(algorithmId, 500);
-        var declusteredVideoIds = MergeDecluster(videoIds).Select(z => z.VideoId).ToList();
+        var algorithmItems = _videoDbContext.GetRecentAlgorithmVideos(algorithmId, 500);
+        algorithmItems = ApplyFactorIncrease(algorithmItems);
+        var declusteredVideoIds = algorithmItems.Decluster(z => z.ChannelId).Select(z => z.VideoId).ToList();
         _globalCache.SetRecentAlgorithmVideoIds(algorithmId, declusteredVideoIds);
         return declusteredVideoIds;
     }
 
-    private List<int> GetNextVideoIds(int algorithmId, List<int> videoIds, int take)
+    private List<AlgorithmVideoEntity> ApplyFactorIncrease(List<AlgorithmVideoEntity> algorithmItems)
     {
-        var position = _ipScopedCache.GetAlgorithmPosition(algorithmId) ?? 0;
-        _ipScopedCache.SetAlgorithmPosition(algorithmId, position + take);
-        var nextVideoIds = Helpers.GetInfiniteDistinctLoop(videoIds, position).Take(take).ToList();
-        return nextVideoIds;
-    }
-
-    private IEnumerable<AlgorithmVideoEntity> MergeDecluster(List<AlgorithmVideoEntity> inputVideos)
-    {
-        return MergeDeclusterRecursive(inputVideos, 0); ;
-    }
-
-    private IEnumerable<AlgorithmVideoEntity> MergeDeclusterRecursive(List<AlgorithmVideoEntity> inputVideos, int depth)
-    {
-        if (inputVideos.Count() <= 2)
-        {
-            return inputVideos;
-        }
-        var groups = inputVideos.GroupBy(z => z.ChannelId).ToList();
-        var left = new List<AlgorithmVideoEntity>();
-        var right = new List<AlgorithmVideoEntity>();
+        var results = new List<AlgorithmVideoEntity>(); 
+        var groups = algorithmItems.GroupBy(z => z.ChannelId);
         foreach (var group in groups)
         {
             IEnumerable<AlgorithmVideoEntity> items = Helpers.RandomizeList(group.ToList());
             var factorIncrease = group.First().InMemoryFactorIncrease;//All items in the group have the same channelPercent
-            if (depth == 0 && factorIncrease > 1)
+            if (factorIncrease > 1)
             {
                 //when InMemoryFactorIncrease is greater than 1, that means that the algorithm proc wanted to return more videos, but was limited by something
                 //in order for InMemoryFactorIncrease to be respected, we will simply duplicate videos from the channel proportional to the InMemoryFactorIncrease
@@ -159,12 +143,18 @@ public class AlgorithmAccess
                 excessItems.AddRange(items.Take(itemsToTake));
                 items = items.Concat(excessItems);
             }
-            var itemList = items.ToList();
-            int midIndex = Helpers.RandomRound(itemList.Count / 2.0);
-            left.AddRange(itemList.GetRange(0, midIndex));
-            right.AddRange(itemList.GetRange(midIndex, itemList.Count - midIndex));
+            results.AddRange(items);
         }
-        return MergeDeclusterRecursive(left, depth + 1).Concat(MergeDeclusterRecursive(right, depth + 1));
+        return results;
+    }
+
+
+    private List<int> GetNextVideoIds(int algorithmId, List<int> videoIds, int take)
+    {
+        var position = _ipScopedCache.GetAlgorithmPosition(algorithmId) ?? 0;
+        _ipScopedCache.SetAlgorithmPosition(algorithmId, position + take);
+        var nextVideoIds = Helpers.GetInfiniteDistinctLoop(videoIds, position).Take(take).ToList();
+        return nextVideoIds;
     }
 
     private RecommendedVideo TranslateToRecommended(VideoEntity video)
