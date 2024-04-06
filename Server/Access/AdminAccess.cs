@@ -83,6 +83,51 @@ public class AdminAccess
         return response;
     }
 
+    public async Task<IEnumerable<FoundPlaylist>> SearchPlaylists(string searchText)
+    {
+        if (searchText == null || searchText.Length < 2)
+        {
+            throw new WebRequestException(400, "searchText must be at least length 2");
+        }
+        var invidiousResults = await _invidiousApiAccess.Search(new Models.Invidious.SearchRequest
+        {
+            Q = searchText,
+            Type = "playlist",
+        });
+        var invidiousPlaylists = invidiousResults.OfType<Models.Invidious.SearchResponse_Playlist>().Take(10).ToList();
+        var uniqueIds = invidiousPlaylists.Select(z => z.PlaylistId).ToList();
+        if (!uniqueIds.Any())
+        {
+            return Enumerable.Empty<FoundPlaylist>();
+        }
+        var existingPlaylists = await _videoDbContext.Playlists.Where(z => uniqueIds.Contains(z.UniqueId)).ToListAsync();
+        var response = invidiousPlaylists.Select(invidiousPlaylist =>
+        {
+            var existingPlaylist = existingPlaylists.FirstOrDefault(z => z.UniqueId == invidiousPlaylist.PlaylistId);
+            var thumbnail = invidiousPlaylist.PlaylistThumbnail;
+            if (thumbnail != null && thumbnail.StartsWith("//"))
+            {
+                thumbnail = "https:" + thumbnail;
+            }
+            return new FoundPlaylist
+            {
+                MyvidiousPlaylistId = existingPlaylist?.Id,
+                ThumbnailUrl = thumbnail,
+
+                Type = invidiousPlaylist.Type,
+                Title = invidiousPlaylist.Title,
+                PlaylistId = invidiousPlaylist.PlaylistId,
+                PlaylistThumbnail = invidiousPlaylist.PlaylistThumbnail,
+                Author = invidiousPlaylist.Author,
+                AuthorId = invidiousPlaylist.AuthorId,
+                AuthorUrl = invidiousPlaylist.AuthorUrl,
+                AuthorVerified = invidiousPlaylist.AuthorVerified,
+                VideoCount = invidiousPlaylist.VideoCount
+            };
+        });
+        return response;
+    }
+
     public async Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms(string? username)
     {
         var algorithmsQuery = _videoDbContext.Algorithms.AsQueryable();
@@ -111,30 +156,24 @@ public class AdminAccess
             throw new WebRequestException(400, $"algorithmId {algorithmId} not found");
         }
         var itemInfos = await _videoDbContext.GetAlgorithmItemInfos().Where(z => z.AlgorithmId == algorithmId).ToListAsync();
-        var sumWeight = itemInfos.Sum(z =>
-        {
-            return z.ChannelCount.HasValue
-                ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
-                : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0);
-        });
+        var sumWeight = itemInfos.Sum(z => Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0));
         var result = new LoadAlgorithmResult
         {
             AlgorithmId = algorithmId,
             AlgorithmItems = itemInfos.Select(z => new LoadAlgorithmItem
             {
-                ChannelGroupId = z.ChannelGroupId,
+                PlaylistId = z.PlaylistId,
                 ChannelId = z.ChannelId,
-                MaxChannelWeight = z.MaxChannelWeight,
                 WeightMultiplier = z.WeightMultiplier,
+                Folder = z.Folder,
                 Name = z.Name,
                 VideoCount = z.VideoCount,
                 FailureCount = z.FailureCount,
-                EstimatedWeight = z.ChannelCount.HasValue
-                    ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
-                    : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
+                EstimatedWeight = Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0)
             }),
-            Description = algorithmEntity.Description,
             AlgorithmName = algorithmEntity.Name,
+            Description = algorithmEntity.Description,
+            MaxItemWeight = algorithmEntity.MaxItemWeight,
             Username = algorithmEntity.Username,
             EstimatedSumWeight = sumWeight,
         };
@@ -143,21 +182,30 @@ public class AdminAccess
 
     public async Task<int> UpdateAlgorithm(UpdateAlgorithmRequest request, string username)
     {
+        //to start, do a bunch of validation
         if (!request.Name.All(char.IsLetterOrDigit))
         {
             throw new WebRequestException(400, "Algorithm name must be alphanumeric");
         }
-        var just1NonNull = request.AlgorithmItems.All(item => new object?[] { item.ChannelId, item.ChannelGroupId, item.NewChannel }.Count(p => p != null) == 1);
+        var just1NonNull = request.AlgorithmItems.All(item => new object?[] { item.ChannelId, item.PlaylistId, item.NewChannel, item.NewPlaylist }.Count(p => p != null) == 1);
         if (!just1NonNull)
         {
-            throw new WebRequestException(400, "each algorithmItem should have precisely 1 of the 3 nullable properties be non-null");
+            throw new WebRequestException(400, "each algorithmItem should have precisely 1 of the 4 nullable properties be non-null");
         }
         var newChannels = request.AlgorithmItems.Where(z => z.NewChannel != null).Select(z => z.NewChannel!);
-        var newUniqueIds = newChannels.Select(z => z.AuthorId).ToList();
-        if (newUniqueIds.Count() != newUniqueIds.Distinct().Count())
+        var newChannelUniqueIds = newChannels.Select(z => z.AuthorId).ToList();
+        if (newChannelUniqueIds.Count() != newChannelUniqueIds.Distinct().Count())
         {
             throw new WebRequestException(400, "NewChannels contains duplicates");
         }
+
+        var newPlaylists = request.AlgorithmItems.Where(z => z.NewPlaylist != null).Select(z => z.NewPlaylist!);
+        var newPlaylistUniqueIds = newPlaylists.Select(z => z.AuthorId).ToList();
+        if (newPlaylistUniqueIds.Count() != newPlaylistUniqueIds.Distinct().Count())
+        {
+            throw new WebRequestException(400, "NewPlaylists contains duplicates");
+        }
+
         var algorithm = request.AlgorithmId.HasValue
             ? _videoDbContext.Algorithms.Include(z => z.AlgorithmItems).First(z => z.Id == request.AlgorithmId)
             : new AlgorithmEntity()
@@ -177,6 +225,8 @@ public class AdminAccess
                 throw new WebRequestException(400, $"user {username} already has an Algorithm named {request.Name}");
             }
         }
+
+        //insert the new channels and trigger the job
         var newChannelEntities = new List<ChannelEntity>();
         if (newChannels.Any())
         {
@@ -214,7 +264,44 @@ public class AdminAccess
                 Description = z.Description
             }));
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.TriggerJob(JobKey.Create(nameof(VideoFetchJob)));
+            await scheduler.TriggerJob(JobKey.Create(nameof(ChannelVideoJob)));
+        }
+
+        //insert the new playlist and trigger the job
+        var newPlaylistEntities = new List<PlaylistEntity>();
+        if (newPlaylists.Any())
+        {
+            //save all new channels to the database
+            newPlaylistEntities = newPlaylists.Select(newPlaylist =>
+            {
+                return new PlaylistEntity
+                {
+                    Name = newPlaylist!.Title,
+                    UniqueId = newPlaylist!.PlaylistId,
+                    VideoCount = newPlaylist.VideoCount,
+
+                    PlaylistThumbnail = newPlaylist.PlaylistThumbnail,
+                    
+                    Author = newPlaylist.Author,
+                    AuthorId = newPlaylist.AuthorId,
+                    AuthorUrl = newPlaylist.AuthorUrl,
+
+                    DateLastScraped = null,
+                    ScrapeFailureCount = 0
+                };
+            }).ToList();
+            _videoDbContext.Playlists.AddRange(newPlaylistEntities);
+            _videoDbContext.SaveChanges();//this should assign Ids to newPlaylistEntities
+            //await _meilisearchAccess.AddChannels(newChannelEntities.Select(z => new ChannelMeilisearch
+            //{
+            //    Id = z.Id,
+            //    Id2 = z.Id,
+            //    Handle = z.Handle,
+            //    Name = z.Name,
+            //    Description = z.Description
+            //}));
+            var scheduler = await _schedulerFactory.GetScheduler();
+            await scheduler.TriggerJob(JobKey.Create(nameof(PlaylistVideoJob)));
         }
 
         if (!request.AlgorithmId.HasValue)
@@ -223,14 +310,15 @@ public class AdminAccess
         }
         algorithm.Name = request.Name;
         algorithm.Description = request.Description;
+        algorithm.MaxItemWeight = request.MaxItemWeight;
 
         //remove all algorithmItems not found among request.AlgorithmItems
         var includedChannelIds = request.AlgorithmItems.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId).Distinct().ToList();
-        var includedChannelGroupIds = request.AlgorithmItems.Where(z => z.ChannelGroupId.HasValue).Select(z => z.ChannelGroupId).ToList();
+        var includedPlaylistIds = request.AlgorithmItems.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId).Distinct().ToList();
         if (algorithm.AlgorithmItems != null)
         {
             algorithm.AlgorithmItems = algorithm.AlgorithmItems
-                .Where(z => includedChannelGroupIds.Contains(z.ChannelGroupId) || includedChannelIds.Contains(z.ChannelId))
+                .Where(z => includedPlaylistIds.Contains(z.PlaylistId) || includedChannelIds.Contains(z.ChannelId))
                 .ToList();
         }
         else
@@ -238,19 +326,20 @@ public class AdminAccess
             algorithm.AlgorithmItems = new List<AlgorithmItemEntity>();
         }
 
-        //update existing items
-        foreach(var existingItem in algorithm.AlgorithmItems)
+        //update existing items' WeightMultiplier
+        foreach (var existingItem in algorithm.AlgorithmItems)
         {
             if (existingItem.ChannelId.HasValue)
             {
-                //we already removed the once not present, so we can use First() rather than FirstOrDefault()
+                //we already removed the ones not present, so we can use First() rather than FirstOrDefault()
                 var requestItem = request.AlgorithmItems.First(z => z.ChannelId == existingItem.ChannelId);
                 existingItem.WeightMultiplier = requestItem.WeightMultiplier;
-                existingItem.MaxChannelWeight = requestItem.MaxChannelWeight;
             }
-            if (existingItem.ChannelGroupId.HasValue)
+            if (existingItem.PlaylistId.HasValue)
             {
-                throw new NotImplementedException();
+                //we already removed the ones not present, so we can use First() rather than FirstOrDefault()
+                var requestItem = request.AlgorithmItems.First(z => z.PlaylistId == existingItem.PlaylistId);
+                existingItem.WeightMultiplier = requestItem.WeightMultiplier;
             }
         }
 
@@ -262,7 +351,6 @@ public class AdminAccess
             return new AlgorithmItemEntity
             {
                 ChannelId = channelEntity.Id,
-                MaxChannelWeight = algorithmItem.MaxChannelWeight,
                 WeightMultiplier = algorithmItem.WeightMultiplier,
             };
         }).ToList();
@@ -272,14 +360,36 @@ public class AdminAccess
             .Select(z => new AlgorithmItemEntity
             {
                 ChannelId = z.ChannelId,
-                ChannelGroupId = z.ChannelGroupId,
-                MaxChannelWeight = z.MaxChannelWeight,
                 WeightMultiplier = z.WeightMultiplier,
             }));
         foreach (var newItem in newChannelAlgorithmItems)
         {
             algorithm.AlgorithmItems.Add(newItem);
         }
+
+        //now we'll do the same for playlists
+        var newPlaylistAlgorithmItems = request.AlgorithmItems.Where(z => z.NewPlaylist != null).Select(algorithmItem =>
+        {
+            var playlistEntity = newPlaylistEntities.First(z => z.UniqueId == algorithmItem.NewPlaylist!.PlaylistId);
+            return new AlgorithmItemEntity
+            {
+                PlaylistId = playlistEntity.Id,
+                WeightMultiplier = algorithmItem.WeightMultiplier,
+            };
+        }).ToList();
+        //then add the playlistIds
+        newPlaylistAlgorithmItems.AddRange(request.AlgorithmItems
+            .Where(z => z.PlaylistId.HasValue && !algorithm.AlgorithmItems.Any(zz => zz.PlaylistId == z.PlaylistId))
+            .Select(z => new AlgorithmItemEntity
+            {
+                PlaylistId = z.PlaylistId,
+                WeightMultiplier = z.WeightMultiplier,
+            }));
+        foreach (var newItem in newPlaylistAlgorithmItems)
+        {
+            algorithm.AlgorithmItems.Add(newItem);
+        }
+
         _videoDbContext.SaveChanges();
         _globalCache.HandleAlgorithmUpdated(algorithm.Id);
         return algorithm.Id;

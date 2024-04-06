@@ -3,9 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace MyVidious.Models.Invidious;
 
-/// <summary>
-/// Should match the VideoObject in the documentation
-/// </summary>
 public class PopularVideo
 {
     /// <summary>

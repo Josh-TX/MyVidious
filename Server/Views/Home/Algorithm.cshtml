@@ -13,10 +13,10 @@
             color: #888;
         }
         td {
-            padding: 12px 8px;
+            padding: 12px 16px;
         }
         th {
-            padding: 8px;
+            padding: 8px 16px;
         }
         table {
             border-collapse: collapse;
@@ -30,14 +30,17 @@
 <body>
     <h1>MyVidious</h1>
     <p>This is the API for the @Model.Username/@Model.AlgorithmName algorithm. You can enter the current url into Invidious clients like Yattee (ios), Clipious (Android), or FreeTube (Desktop)</p>
-    <small>Description</small>
-    <p>@Model.Description</p>
-    <small>Channels in Algorithm</small>
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {        
+        <small>Description</small>
+        <p>@Model.Description</p>
+    }
     <table style="margin-top: 16px;">
         <tr>
-            <th>name</th>
-            <th>quantity</th>
-            <th>% of algorithm</th>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Videos</th>
+            <th>% of Algorithm</th>
             <th></th>
         </tr>
         @foreach (var item in Model.AlgorithmItems)
@@ -46,10 +49,19 @@
             double percentage = Math.Round(item.EstimatedWeight / Model.EstimatedSumWeight * 100, 1);
             <tr>
                 <td>
+                    @if (item.ChannelId.HasValue)
+                    {
+                        <span>Channel</span>
+                    } else
+                    {
+                        <span>Playlist</span>
+                    }
+                </td>
+                <td>
                     @item.Name
                 </td>
                 <td>
-                    @item.VideoCount channels
+                    @item.VideoCount
                 </td>
                 <td>
                     @percentage %

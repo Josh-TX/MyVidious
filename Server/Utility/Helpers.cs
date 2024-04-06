@@ -107,6 +107,10 @@ public static class Helpers
 
     public static IEnumerable<T> GetBackwardsInfiniteDistinctLoop<T>(IList<T> items, int startOffset)
     {
+        if (!items.Any())
+        {
+            yield break;
+        }
         HashSet<T> distinctItems = new HashSet<T>();
         startOffset = startOffset % items.Count;
         int currentIndex = startOffset;

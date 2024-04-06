@@ -84,6 +84,61 @@ export class Client {
     }
 
     /**
+     * @param searchText (optional) 
+     * @return Success
+     */
+    searchPlaylists(searchText: string | undefined): Observable<FoundPlaylist[]> {
+        let url_ = this.baseUrl + "/admin/api/search-playlists?";
+        if (searchText === null)
+            throw new Error("The parameter 'searchText' cannot be null.");
+        else if (searchText !== undefined)
+            url_ += "searchText=" + encodeURIComponent("" + searchText) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processSearchPlaylists(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processSearchPlaylists(response_ as any);
+                } catch (e) {
+                    return _observableThrow(e) as any as Observable<FoundPlaylist[]>;
+                }
+            } else
+                return _observableThrow(response_) as any as Observable<FoundPlaylist[]>;
+        }));
+    }
+
+    protected processSearchPlaylists(response: HttpResponseBase): Observable<FoundPlaylist[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (response as any).error instanceof Blob ? (response as any).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as FoundPlaylist[];
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf(null as any);
+    }
+
+    /**
      * @param username (optional) 
      * @return Success
      */
@@ -1134,6 +1189,21 @@ export interface FoundChannel {
     thumbnailUrl?: string | undefined;
 }
 
+export interface FoundPlaylist {
+    type?: string | undefined;
+    title?: string | undefined;
+    playlistId?: string | undefined;
+    playlistThumbnail?: string | undefined;
+    author?: string | undefined;
+    authorId?: string | undefined;
+    authorUrl?: string | undefined;
+    authorVerified?: boolean;
+    videoCount?: number;
+    videos?: PlaylistVideo[] | undefined;
+    myvidiousPlaylistId?: number | undefined;
+    thumbnailUrl?: string | undefined;
+}
+
 export interface ImageObject {
     url?: string | undefined;
     width?: number | undefined;
@@ -1141,14 +1211,13 @@ export interface ImageObject {
 }
 
 export interface LoadAlgorithmItem {
-    channelGroupId?: number | undefined;
+    playlistId?: number | undefined;
     channelId?: number | undefined;
     weightMultiplier?: number;
-    maxChannelWeight?: number;
     name?: string | undefined;
+    folder?: string | undefined;
     videoCount?: number | undefined;
     failureCount?: number;
-    channelCount?: number | undefined;
     estimatedWeight?: number;
 }
 
@@ -1156,6 +1225,7 @@ export interface LoadAlgorithmResult {
     algorithmId?: number;
     username?: string | undefined;
     algorithmName?: string | undefined;
+    maxItemWeight?: number;
     description?: string | undefined;
     algorithmItems?: LoadAlgorithmItem[] | undefined;
     estimatedSumWeight?: number;
@@ -1164,6 +1234,13 @@ export interface LoadAlgorithmResult {
 export interface LoginRequest {
     username?: string | undefined;
     password?: string | undefined;
+}
+
+export interface PlaylistVideo {
+    lengthSeconds?: number;
+    title?: string | undefined;
+    videoId?: string | undefined;
+    videoThumbnails?: VideoThumbnail[] | undefined;
 }
 
 export interface PopularVideo {
@@ -1207,11 +1284,25 @@ export interface SearchResponse_Channel {
     videoCount?: number;
 }
 
+export interface SearchResponse_Playlist {
+    type?: string | undefined;
+    title?: string | undefined;
+    playlistId?: string | undefined;
+    playlistThumbnail?: string | undefined;
+    author?: string | undefined;
+    authorId?: string | undefined;
+    authorUrl?: string | undefined;
+    authorVerified?: boolean;
+    videoCount?: number;
+    videos?: PlaylistVideo[] | undefined;
+}
+
 export interface UpdateAlgorithmItem {
-    channelGroupId?: number | undefined;
     channelId?: number | undefined;
     newChannel?: SearchResponse_Channel;
-    maxChannelWeight?: number;
+    playlistId?: number | undefined;
+    folder?: string | undefined;
+    newPlaylist?: SearchResponse_Playlist;
     weightMultiplier?: number;
 }
 
@@ -1219,6 +1310,7 @@ export interface UpdateAlgorithmRequest {
     algorithmId?: number | undefined;
     name?: string | undefined;
     description?: string | undefined;
+    maxItemWeight?: number;
     algorithmItems?: UpdateAlgorithmItem[] | undefined;
 }
 

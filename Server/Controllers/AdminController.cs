@@ -55,6 +55,13 @@ namespace MyVidious.Controllers
             return _adminAccess.SearchChannels(searchText);
         }
 
+        [HttpGet("api/search-playlists")]
+        [Authorize]
+        public Task<IEnumerable<FoundPlaylist>> SearchPlaylists([FromQuery] string searchText)
+        {
+            return _adminAccess.SearchPlaylists(searchText);
+        }
+
         [HttpGet("api/search-algorithms")]
         [Authorize]
         public Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms([FromQuery] string? username)

@@ -1,40 +1,22 @@
 WITH part1 AS ( --Get all channel_ids for the algorithm_Id
-    SELECT channel_id, algorithm_item.max_channel_weight, algorithm_item.weight_multiplier
+    SELECT 
+        channel_id,
+        algorithm.max_item_weight, 
+        algorithm_item.weight_multiplier,
+        channel.video_count AS channel_video_count
     FROM algorithm_item
+    JOIN algorithm
+    ON algorithm.id = algorithm_item.algorithm_id
+    JOIN channel
+    ON channel.id = algorithm_item.channel_id
     WHERE algorithm_Id = @p0
-    AND channel_id IS NOT NULL
-
-    UNION ALL
-
-    SELECT channel_group_item.channel_id, algorithm_item.max_channel_weight, algorithm_item.weight_multiplier
-    FROM algorithm_item
-    JOIN channel_group_item
-    ON channel_group_item.channel_group_id = algorithm_item.channel_group_id
-    WHERE algorithm_Id = @algorithm_Id
-),
-part2 AS ( --combine duplicate channels
-    SELECT 
-        part1.channel_id, 
-        AVG(part1.max_channel_weight) AS max_channel_weight, 
-        SUM(part1.weight_multiplier) AS weight_multiplier
-    FROM part1
-    GROUP BY part1.channel_id
-    HAVING SUM(part1.weight_multiplier) > 0
-),
-part3 AS ( --Get the channel_video_count of each Channel
-    SELECT 
-        part2.*, 
-        COUNT(*) AS channel_video_count
-    FROM part2
-    JOIN video
-    ON video.channel_id = part2.channel_id
-    GROUP BY part2.channel_id, part2.max_channel_weight, part2.weight_multiplier
 ),
 part4 AS ( --Calculate the channel's weight
     SELECT 
-        part3.channel_id,
-        CASE WHEN part3.channel_video_count > part3.max_channel_weight THEN part3.max_channel_weight * part3.weight_multiplier ELSE part3.channel_video_count * part3.weight_multiplier END AS weight
-    FROM part3
+        part1.channel_id,
+        part1.channel_video_count,
+        CASE WHEN part1.channel_video_count > part1.max_item_weight THEN part1.max_item_weight * part1.weight_multiplier ELSE part1.channel_video_count * part1.weight_multiplier END AS weight
+    FROM part1
 ),
 part5 AS ( --Calculate sum weight of all channels on the algorithm
     SELECT 

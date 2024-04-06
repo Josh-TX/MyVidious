@@ -37,11 +37,16 @@
         </div>
     </div>
     <div style="display: flex; gap: 16px; align-items: center;">
-        <div style="flex: 1;"></div>
         <div>
-            Add Channel
+            <mat-form-field class="w-100" style="margin-bottom: -23px;">
+                <mat-label>Max Item Weight</mat-label>
+                <input type="number" autocomplete="off" matInput [(ngModel)]="maxItemWeight" name="maxItemWeight">
+            </mat-form-field>
         </div>
-        <channel-search style="flex-grow: 1; max-width: 700px;" (select)="addChannel($event)"></channel-search>
+        <div style="flex: 1;"></div>
+
+        <channel-search style="flex-grow: 1; max-width: 600px;" (select)="addChannel($event)"></channel-search>
+        <playlist-search style="flex-grow: 1; max-width: 600px;" (select)="addPlaylist($event)"></playlist-search>
         <div style="flex: 1;"></div>
         <div>
             <button mat-raised-button [matMenuTriggerFor]="selectedMenu" [disabled]="!getSelectedCount()">
@@ -96,18 +101,6 @@
             <th mat-header-cell *matHeaderCellDef> Count </th>
             <td mat-cell *matCellDef="let item"> {{item.videoCount}} </td>
         </ng-container>
-
-        <ng-container matColumnDef="maxChannelWeight">
-            <th mat-header-cell *matHeaderCellDef>
-                Max Channel Weight
-                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="Normally a channel's weight is the # of videos, but you can use this to prevent large channels from having too much weight">info</mat-icon>
-            </th>
-            <td mat-cell *matCellDef="let item">
-                <input type="number" [(ngModel)]="item.maxChannelWeight">
-            </td>
-        </ng-container>
-
 
         <ng-container matColumnDef="weightMultiplier">
             <th mat-header-cell *matHeaderCellDef>

@@ -9,7 +9,7 @@ public class VideoEntity
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
-    public int ChannelId { get; set; }
+    public int? ChannelId { get; set; }
     public required string Title { get; set; }
     /// <summary>
     /// should match the VideoId of the invidious API
@@ -27,13 +27,15 @@ public class VideoEntity
     public long ViewCount { get; set; }
     public int LengthSeconds { get; set; }
 
-    public long Published { get; set; }
+    public long? EstimatedPublished { get; set; }
+    public long? ActualPublished { get; set; }
 
-    public int? PremiereTimestamp { get; set; }
+    public long? PremiereTimestamp { get; set; }
     public bool LiveNow { get; set; }
     public bool Premium { get; set; }
     public bool IsUpcoming { get; set; }
 
     [ForeignKey("ChannelId")] 
     public ChannelEntity? Channel { get; set; }
+    public IList<PlaylistVideoEntity>? PlaylistVideos { get; set; }
 }

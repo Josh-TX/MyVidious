@@ -101,13 +101,28 @@ services.AddQuartz(quartz =>
     quartz.AddTrigger(trigger => 
         trigger.ForJob(urlJobKey).WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromHours(2)).RepeatForever())
     );
-    var videoFetchJobKey = JobKey.Create(nameof(VideoFetchJob));
-    quartz.AddJob<VideoFetchJob>(videoFetchJobKey, options => options.DisallowConcurrentExecution());
+    var channelVideoJobKey = JobKey.Create(nameof(ChannelVideoJob));
+
+    quartz.AddJob<ChannelVideoJob>(channelVideoJobKey, options => options.DisallowConcurrentExecution());
     quartz.AddTrigger(trigger =>
-        trigger.ForJob(videoFetchJobKey)
-        .StartAt(DateTimeOffset.UtcNow.AddMinutes(30))
+        trigger.ForJob(channelVideoJobKey)
+        .StartAt(DateTimeOffset.UtcNow.AddMinutes(15))
         .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
     );
+
+    var playlistVideoJobKey = JobKey.Create(nameof(PlaylistVideoJob));
+    quartz.AddJob<PlaylistVideoJob>(playlistVideoJobKey, options => options.DisallowConcurrentExecution());
+    quartz.AddTrigger(trigger =>
+    trigger.ForJob(playlistVideoJobKey)
+        .StartAt(DateTimeOffset.UtcNow.AddSeconds(5))
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
+    );
+
+    quartz.AddJob<VideoDetailsJob>(JobKey.Create(nameof(VideoDetailsJob)), options =>
+    {
+        options.StoreDurably();
+        options.DisallowConcurrentExecution();
+    });
 });
 services.AddQuartzHostedService();
 

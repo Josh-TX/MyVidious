@@ -62,30 +62,23 @@ namespace MyVidious.Controllers
             }
             var algorithmEntity = _videoDbContext.Algorithms.First(z => z.Id == algorithmId);
             var itemInfos = await _videoDbContext.GetAlgorithmItemInfos().Where(z => z.AlgorithmId == algorithmEntity.Id).ToListAsync();
-            var sumWeight = itemInfos.Sum(z =>
-            {
-                return z.ChannelCount.HasValue
-                    ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
-                    : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0);
-            });
+            var sumWeight = itemInfos.Sum(z => Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0));
             var result = new LoadAlgorithmResult
             {
                 AlgorithmId = algorithmEntity.Id,
                 AlgorithmItems = itemInfos.Select(z => new LoadAlgorithmItem
                 {
-                    ChannelGroupId = z.ChannelGroupId,
+                    PlaylistId = z.PlaylistId,
                     ChannelId = z.ChannelId,
-                    MaxChannelWeight = z.MaxChannelWeight,
                     WeightMultiplier = z.WeightMultiplier,
                     Name = z.Name,
                     VideoCount = z.VideoCount,
                     FailureCount = z.FailureCount,
-                    EstimatedWeight = z.ChannelCount.HasValue
-                        ? z.ChannelCount.Value * Math.Min(z.MaxChannelWeight, EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
-                        : Math.Min(z.MaxChannelWeight, z.VideoCount ?? EST_VIDEO_COUNT) * Math.Max(z.WeightMultiplier, 0)
+                    EstimatedWeight = Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0)
                 }),
-                Description = algorithmEntity.Description,
                 AlgorithmName = algorithmEntity.Name,
+                MaxItemWeight = algorithmEntity.MaxItemWeight,
+                Description = algorithmEntity.Description,
                 Username = algorithmEntity.Username,
                 EstimatedSumWeight = sumWeight,
             };

@@ -1,0 +1,25 @@
+<div style="position: relative;">
+    <mat-form-field class="w-100" style="margin-bottom: -23px;">
+        <mat-label>Search Playlists</mat-label>
+        <input autocomplete="off" matInput [(ngModel)]="text" (ngModelChange)="textChanged()" name="searchText" (blur)="blured()" (focus)="focused()">
+    </mat-form-field>
+    <div *ngIf="showDropdown && text" class="mat-elevation-z4" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 5; overflow-y: auto; max-height: 400px; background: #fff;">
+        <div *ngIf="text.length < 2" class="text-center text-muted" style="padding: 8px;">type more letters</div>
+        <div *ngIf="isLoading" class="text-center text-muted" style="padding: 8px;">loading</div>
+        <div *ngIf="!isLoading && !results.length && text.length >= 2" class="text-center text-muted" style="padding: 8px;">no results</div>
+        <div *ngFor="let result of results; let i = index;" class="hover-highlight" (mousedown)="mousedown()" (mouseup)="mouseup(result)"
+            style="height: 76px; display: flex; padding: 6px 6px; border-bottom: 1px solid #ddd; cursor: pointer;" >
+            <div style="height: 64px; width: 64px;">
+                <img *ngIf="result.thumbnailUrl && thumbCount >= i" [src]="result.thumbnailUrl" style="width: 64px; height: 64px">
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; padding: 4px 0 0 8px;">
+                <div style="display: flex;">
+                    <h3>{{result.title}} &nbsp; <small class="text-muted">{{result.videoCount}} videos</small></h3> 
+                </div>
+                <div class="text-muted" style="line-height: 1em; max-height: 35px; overflow: hidden;">
+                    <small>made by {{result.author}}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -29,7 +29,7 @@ public class VideoObject
     public string? PublishedText { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public int? PremiereTimestamp { get; set; }//listed in documentation, but APIs don't return it
+    public long? PremiereTimestamp { get; set; }//listed in documentation, but APIs don't return it
     public bool LiveNow { get; set; }
     public bool Premium { get; set; }
     public bool IsUpcoming { get; set; }

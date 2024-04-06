@@ -1,6 +1,6 @@
 import { Component, ViewChild } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Client, FoundChannel, UpdateAlgorithmRequest, UserInfo } from "generated";
+import { Client, FoundChannel, FoundPlaylist, UpdateAlgorithmRequest, UserInfo } from "generated";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from "rxjs";
 import { AuthService } from "../services/auth.service";
@@ -18,8 +18,9 @@ type Folder = {
 type AlgorithmItem = {
     channelId?: number | undefined;
     newChannel?: FoundChannel | undefined;
+    playlistId?: number | undefined;
+    newPlaylist?: FoundPlaylist | undefined;
     weightMultiplier?: number;
-    maxChannelWeight?: number;
     name?: string | undefined;
     videoCount: number;
     selected: boolean;
@@ -48,13 +49,14 @@ export class ManageAlgorithmComponent {
     allItems: AlgorithmItem[] = [];
     folders: Folder[] = [];
     tableRows: TableRow[] = [];
+    maxItemWeight: number = 100;
     
 
     algorithmId: number | undefined;
 
     @ViewChild("table") table!: MatTable<any>;
 
-    displayedColumns: string[] = ['folder', 'name', 'count', 'maxChannelWeight', 'weightMultiplier', 'weight', 'percent', 'select'];
+    displayedColumns: string[] = ['folder', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'select'];
     //displayedColumns: string[] = ['name', 'other', 'count'];
     private routeSub!: Subscription;
     ngOnInit() {
@@ -97,15 +99,15 @@ export class ManageAlgorithmComponent {
             this.name = result.algorithmName!;
             this.originalName = this.name;
             this.description = result.description!;
+            this.maxItemWeight = result.maxItemWeight!;
             this.allItems = result.algorithmItems!.map(z => ({
                 name: z.name,
-                channelGroupId: z.channelGroupId,
                 channelId: z.channelId,
-                maxChannelWeight: z.maxChannelWeight,
+                playlistId: z.playlistId,
                 weightMultiplier: z.weightMultiplier,
                 videoCount: z.videoCount || 0,
                 selected: false,
-                folderName: "folder1"
+                folderName: z.folder
             }));
             this.updateTableRows();
         });
@@ -153,9 +155,19 @@ export class ManageAlgorithmComponent {
             channelId: channel.channelId,
             newChannel: channel.channelId ? undefined : channel,
             weightMultiplier: 1,
-            maxChannelWeight: 100,
             name: channel.author,
             videoCount: channel.videoCount!,
+            selected: this.isAllSelected()
+        })
+        this.updateTableRows();
+    }
+    addPlaylist(playlist: FoundPlaylist) {
+        this.allItems.push({
+            playlistId: playlist.myvidiousPlaylistId,
+            newPlaylist: playlist.myvidiousPlaylistId ? undefined : playlist,
+            weightMultiplier: 1,
+            name: playlist.title,
+            videoCount: playlist.videoCount!,
             selected: this.isAllSelected()
         })
         this.updateTableRows();
@@ -184,10 +196,10 @@ export class ManageAlgorithmComponent {
             this.snackBar.open("algorithm name must be alphanumeric", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
         }
-        if (!this.description) {
-            this.snackBar.open("algorithm description required", "", { panelClass: "snackbar-error", duration: 3000 });
-            return;
-        }
+        // if (!this.description) {
+        //     this.snackBar.open("algorithm description required", "", { panelClass: "snackbar-error", duration: 3000 });
+        //     return;
+        // }
         if (!this.allItems.length) {
             this.snackBar.open("algorithm is empty", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
@@ -196,11 +208,14 @@ export class ManageAlgorithmComponent {
             algorithmId: this.algorithmId,
             name: this.name,
             description: this.description,
+            maxItemWeight: this.maxItemWeight,
             algorithmItems: this.allItems.map(z => ({
                 channelId: z.channelId,
                 newChannel: z.newChannel,
-                maxChannelWeight: z.maxChannelWeight,
-                weightMultiplier: z.weightMultiplier
+                playlistId: z.playlistId,
+                newPlaylist: z.newPlaylist,
+                weightMultiplier: z.weightMultiplier,
+                folder: z.folderName
             }))
         }
         this.loader.setIsLoading(true);

@@ -17,6 +17,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatInputModule } from '@angular/material/input';
 import { ChannelSearchComponent } from './channel-search/channel-search.component';
+import { PlaylistSearchComponent } from './playlist-search/playlist-search.component';
+
+
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { ManageAlgorithmComponent } from './manage-algorithm/manage-algorithm.component';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -35,6 +38,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
     ManageAlgorithmComponent,
     ChannelSearchComponent,
     LoaderComponent,
+    PlaylistSearchComponent
   ],
   imports: [
     BrowserModule,

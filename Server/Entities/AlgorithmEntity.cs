@@ -12,6 +12,7 @@ public class AlgorithmEntity
     public required string Username { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public int MaxItemWeight { get; set; }
 
     public IList<AlgorithmItemEntity>? AlgorithmItems { get; set; }
 }

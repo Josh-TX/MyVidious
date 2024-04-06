@@ -8,5 +8,6 @@ public class UpdateAlgorithmRequest
     public int? AlgorithmId { get; set; }
     public required string Name { get; set; }
     public string? Description { get; set; }
+    public int MaxItemWeight { get; set; }
     public required IEnumerable<UpdateAlgorithmItem> AlgorithmItems { get; set; }
 }

@@ -112,4 +112,17 @@ public class InvidiousAPIAccess
         var data = System.Text.Json.JsonSerializer.Deserialize<ChannelVideosResponse>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return data!;
     }
+
+    public async Task<PlaylistResponse> GetPlaylist(string playlistId)
+    {
+        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/playlists/" + playlistId;
+        var response = await _httpClient.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception("Invidious API returned status code " + (int)response.StatusCode);
+        }
+        var json = await response.Content.ReadAsStringAsync();
+        var data = System.Text.Json.JsonSerializer.Deserialize<PlaylistResponse>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return data!;
+    }
 }

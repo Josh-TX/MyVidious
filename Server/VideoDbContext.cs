@@ -13,20 +13,19 @@ public class VideoDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ChannelGroupItemEntity>().HasKey(e => new { e.ChannelGroupId, e.ChannelId });
-        modelBuilder.Entity<AlgorithmVideoEntity>().ToView(null).HasNoKey();
-        modelBuilder.Entity<AlgorithmItemInfoEntity>().ToView(null).HasNoKey();
+        modelBuilder.Entity<PlaylistVideoEntity>().HasKey(e => new { e.PlaylistId, e.VideoId });
+        modelBuilder.Entity<AlgorithmVideoEntity>().HasNoKey();
+        modelBuilder.Entity<AlgorithmItemInfoEntity>().HasNoKey();
         modelBuilder.Entity<VideoEntity>().HasIndex(z => z.UniqueId).IsUnique();
         modelBuilder.Entity<ChannelEntity>().HasIndex(z => z.UniqueId).IsUnique();
     }
 
     public DbSet<ChannelEntity> Channels { get; set; }
-    public DbSet<ChannelGroupEntity> ChannelGroups { get; set; }
-    public DbSet<ChannelGroupItemEntity> ChannelGroupItems { get; set; }
+    public DbSet<PlaylistEntity> Playlists { get; set; }
+    public DbSet<PlaylistVideoEntity> PlaylistVideos { get; set; }
     public DbSet<VideoEntity> Videos { get; set; }
     public DbSet<AlgorithmEntity> Algorithms { get; set; }
     public DbSet<AlgorithmItemEntity> AlgorithmItems { get; set; }
-
 
 
     public IQueryable<AlgorithmItemInfoEntity> GetAlgorithmItemInfos()

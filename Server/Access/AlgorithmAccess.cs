@@ -66,7 +66,6 @@ public class AlgorithmAccess
     public IEnumerable<int> GetChannelIds(string username, string algorithmName)
     {
         var id = _getAlgorithmId(username, algorithmName)!.Value;
-        //this doesn't support channelGroups atm, but it should eventually
         var channelIds = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id && z.ChannelId.HasValue).Select(z => z.ChannelId!.Value).ToList();
         return channelIds;
     }
@@ -183,6 +182,7 @@ public class AlgorithmAccess
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
         return new VideoObject
         {
             Type = "video",
@@ -202,8 +202,8 @@ public class AlgorithmAccess
             ViewCount = video.ViewCount,
             ViewCountText = Helpers.FormatViews(video.ViewCount),
 
-            Published = video.Published,
-            PublishedText = Helpers.GetPublishedText(video.Published),
+            Published = published,
+            PublishedText = Helpers.GetPublishedText(published),
             PremiereTimestamp = video.PremiereTimestamp,
             LiveNow = video.LiveNow,
             Premium = video.Premium,
@@ -217,6 +217,7 @@ public class AlgorithmAccess
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
         return new PopularVideo
         {
             Type = "shortVideo",
@@ -232,8 +233,8 @@ public class AlgorithmAccess
             AuthorId = video.AuthorId,
             AuthorUrl = video.AuthorUrl,
 
-            Published = video.Published,
-            PublishedText = Helpers.GetPublishedText(video.Published),
+            Published = published,
+            PublishedText = Helpers.GetPublishedText(published),
         };
     }
 }

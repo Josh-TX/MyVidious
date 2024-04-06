@@ -9,34 +9,31 @@ using Quartz;
 
 namespace MyVidious.Background; 
 
-public class VideoFetchJob : IJob
+public class ChannelVideoJob : IJob
 {
     private InvidiousAPIAccess _invidiousAPIAccess;
     private IServiceScopeFactory _serviceScopeFactory;
-    private AppSettings _appSettings;
     private InvidiousUrlsAccess _invidiousUrlsAccess;
     private MeilisearchAccess _meilisearchAccess;
 
-    public VideoFetchJob(
+    public ChannelVideoJob(
         IServiceScopeFactory serviceScopeFactory, 
         InvidiousAPIAccess invidiousAPIAccess, 
-        AppSettings appSettings, 
         InvidiousUrlsAccess invidiousUrlsAccess,
         MeilisearchAccess meilisearchAccess)
     {
         _invidiousAPIAccess = invidiousAPIAccess;
         _serviceScopeFactory = serviceScopeFactory;
-        _appSettings = appSettings;
         _invidiousUrlsAccess = invidiousUrlsAccess;
         _meilisearchAccess = meilisearchAccess;
     }
 
     async Task IJob.Execute(IJobExecutionContext context)
     {
-        await UpdateChannelVideos(context.CancellationToken);
+        await UpdateAllChannelVideos(context.CancellationToken);
     }
 
-    private async Task UpdateChannelVideos(CancellationToken stoppingToken)
+    private async Task UpdateAllChannelVideos(CancellationToken stoppingToken)
     {
         using var scope = _serviceScopeFactory.CreateScope();
         var videoDbContext = scope.ServiceProvider.GetRequiredService<VideoDbContext>();
@@ -87,7 +84,11 @@ public class VideoFetchJob : IJob
             }
             channel.ScrapeFailureCount = 0;//we reset this each time there's a success
             var uniqueIds = response.Videos.Select(z => z.VideoId).ToList();
-            var existingUniqueIds = videoDbContext.Videos.Where(z => uniqueIds.Contains(z.UniqueId)).Select(z => z.UniqueId).ToList();
+            var existingVideos = videoDbContext.Videos.Where(z => uniqueIds.Contains(z.UniqueId)).ToList();
+            //it's possible for a playlist to have already added the video
+            var anyExistingChannels = existingVideos.Any(z => z.ChannelId.HasValue);//needed to later decide if need to keep scraping
+            existingVideos.ForEach(z => z.ChannelId = channel.Id);
+            var existingUniqueIds = existingVideos.Select(z => z.UniqueId).ToList();
             var videosToAdd = response.Videos.Where(z => !existingUniqueIds.Contains(z.VideoId)).Select(TranslateToEntity).ToList();
             foreach(var video in videosToAdd)
             {
@@ -114,14 +115,14 @@ public class VideoFetchJob : IJob
                 Id = z.Id,
                 Title = z.Title,
                 ChannelName = channel.Name,
-                ChannelId = z.ChannelId
+                ChannelId = channel.Id,
             }));
             request.Continuation = response.Continuation;
-            if (request.Continuation == null || (existingUniqueIds.Any() && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
+            if (request.Continuation == null || (anyExistingChannels && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
             {
                 return;
             }
-            var throttleTime = new Random().Next(1000, 20000);
+            var throttleTime = new Random().Next(1000, 2000);
             await Task.Delay(throttleTime);
         }
     }
@@ -142,7 +143,7 @@ public class VideoFetchJob : IJob
             Description = videoObject.Description,
             ViewCount = videoObject.ViewCount,
             LengthSeconds = videoObject.LengthSeconds,
-            Published = videoObject.Published,
+            EstimatedPublished = videoObject.Published,
             PremiereTimestamp = videoObject.PremiereTimestamp,
             LiveNow = videoObject.LiveNow,
             Premium = videoObject.Premium,

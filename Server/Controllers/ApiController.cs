@@ -122,6 +122,7 @@ public class ApiController : Controller
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : Enumerable.Empty<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
         return new SearchResponse_Video
         {
             Type = "video",
@@ -142,8 +143,8 @@ public class ApiController : Controller
             ViewCountText = Helpers.FormatViews(video.ViewCount),
             LengthSeconds = video.LengthSeconds,
 
-            Published = video.Published,
-            PublishedText = Helpers.GetPublishedText(video.Published),
+            Published = published,
+            PublishedText = Helpers.GetPublishedText(published),
 
             LiveNow = video.LiveNow,
             Premium = video.Premium,
