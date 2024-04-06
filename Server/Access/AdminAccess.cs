@@ -255,13 +255,12 @@ public class AdminAccess
             }).ToList();
             _videoDbContext.Channels.AddRange(newChannelEntities);
             _videoDbContext.SaveChanges();//this should assign Ids to newChannelEntities
-            await _meilisearchAccess.AddChannels(newChannelEntities.Select(z => new ChannelMeilisearch
+            await _meilisearchAccess.AddItems(newChannelEntities.Select(z => new MeilisearchItem
             {
-                Id = z.Id,
-                Id2 = z.Id,
-                Handle = z.Handle,
+                ChannelId = z.Id,
+                FilterChannelId = z.Id,
                 Name = z.Name,
-                Description = z.Description
+                SecondName = z.Handle
             }));
             var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.TriggerJob(JobKey.Create(nameof(ChannelVideoJob)));
@@ -276,7 +275,7 @@ public class AdminAccess
             {
                 return new PlaylistEntity
                 {
-                    Name = newPlaylist!.Title,
+                    Title = newPlaylist!.Title,
                     UniqueId = newPlaylist!.PlaylistId,
                     VideoCount = newPlaylist.VideoCount,
 
@@ -292,14 +291,13 @@ public class AdminAccess
             }).ToList();
             _videoDbContext.Playlists.AddRange(newPlaylistEntities);
             _videoDbContext.SaveChanges();//this should assign Ids to newPlaylistEntities
-            //await _meilisearchAccess.AddChannels(newChannelEntities.Select(z => new ChannelMeilisearch
-            //{
-            //    Id = z.Id,
-            //    Id2 = z.Id,
-            //    Handle = z.Handle,
-            //    Name = z.Name,
-            //    Description = z.Description
-            //}));
+            await _meilisearchAccess.AddItems(newPlaylistEntities.Select(z => new MeilisearchItem
+            {
+                PlaylistId = z.Id,
+                FilterPlaylistIds = [z.Id],
+                Name = z.Title,
+                SecondName = null
+            }));
             var scheduler = await _schedulerFactory.GetScheduler();
             await scheduler.TriggerJob(JobKey.Create(nameof(PlaylistVideoJob)));
         }
@@ -334,12 +332,14 @@ public class AdminAccess
                 //we already removed the ones not present, so we can use First() rather than FirstOrDefault()
                 var requestItem = request.AlgorithmItems.First(z => z.ChannelId == existingItem.ChannelId);
                 existingItem.WeightMultiplier = requestItem.WeightMultiplier;
+                existingItem.Folder = requestItem.Folder;
             }
             if (existingItem.PlaylistId.HasValue)
             {
                 //we already removed the ones not present, so we can use First() rather than FirstOrDefault()
                 var requestItem = request.AlgorithmItems.First(z => z.PlaylistId == existingItem.PlaylistId);
                 existingItem.WeightMultiplier = requestItem.WeightMultiplier;
+                existingItem.Folder = requestItem.Folder;
             }
         }
 

@@ -6,7 +6,7 @@ import { Subscription } from "rxjs";
 import { AuthService } from "../services/auth.service";
 import { MatTable } from "@angular/material/table";
 import { LoaderService } from "../services/loader.service";
-import { getDistinct } from "../services/helpers"
+import { getDistinct, getSum } from "../services/helpers"
 
 
 type Folder = {
@@ -50,13 +50,13 @@ export class ManageAlgorithmComponent {
     folders: Folder[] = [];
     tableRows: TableRow[] = [];
     maxItemWeight: number = 100;
-    
+
 
     algorithmId: number | undefined;
 
     @ViewChild("table") table!: MatTable<any>;
 
-    displayedColumns: string[] = ['folder', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'select'];
+    displayedColumns: string[] = ['folder', 'type', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'select'];
     //displayedColumns: string[] = ['name', 'other', 'count'];
     private routeSub!: Subscription;
     ngOnInit() {
@@ -83,9 +83,18 @@ export class ManageAlgorithmComponent {
         return (Math.round(percent * 1000) / 10) + " %";
     }
 
-    getWeight(item: AlgorithmItem): number {
+    getWeight(row: TableRow): number {
+        if (this.isFolder(row)){
+            var folderItems = this.allItems.filter(z => z.folderName == row.name);
+            return getSum(folderItems.map(z => this.getItemWeight(z)));
+        } else {
+            return this.getItemWeight(row);
+        }
+    }
+
+    private getItemWeight(item: AlgorithmItem){
         var videoCount = item.videoCount > 0 || item.channelId != null ? item.videoCount : 100;
-        return Math.min(videoCount, 100) * Math.max(0, item.weightMultiplier || 0);
+        return Math.min(videoCount, this.maxItemWeight) * Math.max(0, item.weightMultiplier || 0);
     }
 
     isGuess(item: AlgorithmItem): boolean {
@@ -113,12 +122,12 @@ export class ManageAlgorithmComponent {
         });
     }
 
-    private updateTableRows(){
+    private updateTableRows() {
         this.tableRows = [];
         var oldFolders = this.folders;
         this.folders = getDistinct(this.allItems.map(z => z.folderName).filter(z => !!z)).map(folderName => {
             var foundFolder = oldFolders.find(z => z.name == folderName);
-            if (foundFolder){
+            if (foundFolder) {
                 return foundFolder;
             } else {
                 return {
@@ -128,9 +137,9 @@ export class ManageAlgorithmComponent {
                 }
             }
         });
-        for (var folder of this.folders){
+        for (var folder of this.folders) {
             this.tableRows.push(folder);
-            if (folder.isExpanded){
+            if (folder.isExpanded) {
                 this.tableRows.push(...this.allItems.filter(z => z.folderName == folder.name));
             }
         }
@@ -245,19 +254,20 @@ export class ManageAlgorithmComponent {
         }
     }
 
-    addToFolder(){
-        var name = prompt("new folder name");
-        if (name){
-            this.allItems.filter(z => z.selected).forEach(z => z.folderName = name!);
-            this.updateTableRows();
-            this.allItems.forEach(z => z.selected = false);
-            this.folders.forEach(z => z.selected = false);
+    addToFolder(existingFolder: Folder | undefined = undefined) {
+        var name = existingFolder ? existingFolder.name : prompt("new folder name");
+        if (!name) {
+            return;
         }
+        this.allItems.filter(z => z.selected).forEach(z => z.folderName = name!);
+        this.updateTableRows();
+        this.allItems.forEach(z => z.selected = false);
+        this.folders.forEach(z => z.selected = false);
     }
 
-    toggleSelected(tableRow: TableRow){
-        if (this.isFolder(tableRow)){
-            if (this.isFolderSelected(tableRow)){
+    toggleSelected(tableRow: TableRow) {
+        if (this.isFolder(tableRow)) {
+            if (this.isFolderSelected(tableRow)) {
                 tableRow.selected = false;
             } else {
                 tableRow.selected = true;
@@ -266,11 +276,11 @@ export class ManageAlgorithmComponent {
         } else {
             tableRow.selected = !tableRow.selected;
             var folder = this.folders.find(z => z.name == tableRow.folderName);
-            if (folder){
+            if (folder) {
                 var items = this.allItems.filter(z => z.folderName == folder!.name);
                 var selected = items.filter(z => z.selected);
                 console.log(folder, items, selected)
-                if (selected.length && selected.length != items.length){
+                if (selected.length && selected.length != items.length) {
                     folder.selected = null;
                 } else {
                     folder.selected = !!selected.length;
@@ -279,18 +289,28 @@ export class ManageAlgorithmComponent {
         }
     }
 
-    private isFolderSelected(folder: Folder): boolean{
+    private isFolderSelected(folder: Folder): boolean {
         return this.allItems.filter(z => z.folderName == folder.name).every(z => z.selected);
-    }   
+    }
 
-    toggleExpanded(item: TableRow){
+    toggleExpanded(item: TableRow) {
         var folder = item as Folder;
         folder.isExpanded = !folder.isExpanded;
         this.updateTableRows();
     }
 
-    isFolder(row: TableRow): row is Folder{
+    isFolder(row: TableRow): row is Folder {
         return "isExpanded" in row;
+    }
+
+    getTypeName(row: TableRow) {
+        if (this.isFolder(row)) {
+            return "folder";
+        } else if (row.playlistId || row.newPlaylist) {
+            return "playlist";
+        } else {
+            return "channel";
+        }
     }
 
     isAllSelected(): boolean {

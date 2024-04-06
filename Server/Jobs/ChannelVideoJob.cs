@@ -1,10 +1,7 @@
 
-using Meilisearch;
 using MyVidious.Access;
 using MyVidious.Data;
-using MyVidious.Models;
 using MyVidious.Models.Invidious;
-using MyVidious.Utilities;
 using Quartz;
 
 namespace MyVidious.Background; 
@@ -110,12 +107,12 @@ public class ChannelVideoJob : IJob
             channel.DateLastScraped = DateTime.UtcNow;
             Console.WriteLine($"scraped {videosToAdd.Count} videos for channel {channel.Name}");
             videoDbContext.SaveChanges();
-            await _meilisearchAccess.AddVideos(videosToAdd.Select(z => new VideoMeilisearch
+            await _meilisearchAccess.AddItems(videosToAdd.Select(z => new MeilisearchItem
             {
-                Id = z.Id,
-                Title = z.Title,
-                ChannelName = channel.Name,
-                ChannelId = channel.Id,
+                VideoId = z.Id,
+                Name = z.Title,
+                SecondName = channel.Name,
+                FilterChannelId = channel.Id,
             }));
             request.Continuation = response.Continuation;
             if (request.Continuation == null || (anyExistingChannels && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)

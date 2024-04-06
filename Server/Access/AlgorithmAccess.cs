@@ -63,11 +63,15 @@ public class AlgorithmAccess
         return nextVideoIds.Select(videoId => TranslateToVideoObject(videos.First(z => z.Id == videoId))).ToList();
     }
 
-    public IEnumerable<int> GetChannelIds(string username, string algorithmName)
+    public ChannelAndPlaylistIds GetChannelAndPlaylistIds(string username, string algorithmName)
     {
         var id = _getAlgorithmId(username, algorithmName)!.Value;
-        var channelIds = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id && z.ChannelId.HasValue).Select(z => z.ChannelId!.Value).ToList();
-        return channelIds;
+        var items = _videoDbContext.AlgorithmItems.Where(z => z.AlgorithmId == id).ToList();
+        return new ChannelAndPlaylistIds
+        {
+            ChannelIds = items.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId!.Value),
+            PlaylistIds = items.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId!.Value),
+        };
     }
 
     public void BustAlgorithmCache(string username, string algorithmName)
@@ -100,7 +104,7 @@ public class AlgorithmAccess
         }
         var algorithmItems = _videoDbContext.GetRandomAlgorithmVideos(algorithmId, 500);
         algorithmItems = ApplyFactorIncrease(algorithmItems);
-        var declusteredVideoIds = algorithmItems.Decluster(z => z.ChannelId).Select(z => z.VideoId).ToList();
+        var declusteredVideoIds = algorithmItems.Decluster(z => new { z.ChannelId, z.PlaylistId }).Select(z => z.VideoId).ToList();
         _globalCache.SetRandomAlgorithmVideoIds(algorithmId, declusteredVideoIds);
         return declusteredVideoIds;
     }
@@ -114,7 +118,7 @@ public class AlgorithmAccess
         }
         var algorithmItems = _videoDbContext.GetRecentAlgorithmVideos(algorithmId, 500);
         algorithmItems = ApplyFactorIncrease(algorithmItems);
-        var declusteredVideoIds = algorithmItems.Decluster(z => z.ChannelId).Select(z => z.VideoId).ToList();
+        var declusteredVideoIds = algorithmItems.Decluster(z => new { z.ChannelId, z.PlaylistId }).Select(z => z.VideoId).ToList();
         _globalCache.SetRecentAlgorithmVideoIds(algorithmId, declusteredVideoIds);
         return declusteredVideoIds;
     }
@@ -122,8 +126,9 @@ public class AlgorithmAccess
     private List<AlgorithmVideoEntity> ApplyFactorIncrease(List<AlgorithmVideoEntity> algorithmItems)
     {
         var results = new List<AlgorithmVideoEntity>(); 
-        var groups = algorithmItems.GroupBy(z => z.ChannelId);
-        foreach (var group in groups)
+        var groups = algorithmItems.GroupBy(z => new { z.ChannelId, z.PlaylistId });
+        var randGroups = Helpers.RandomizeList(groups.ToList());
+        foreach (var group in randGroups)
         {
             IEnumerable<AlgorithmVideoEntity> items = Helpers.RandomizeList(group.ToList());
             var factorIncrease = group.First().InMemoryFactorIncrease;//All items in the group have the same channelPercent

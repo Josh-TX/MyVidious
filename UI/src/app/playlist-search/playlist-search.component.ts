@@ -12,7 +12,7 @@ import { Subscription } from "rxjs";
 })
 export class PlaylistSearchComponent {
     @Input() excludeIds: number[] = []
-    @Output("select") selectEmitter = new EventEmitter<FoundPlaylist>();
+    @Output("itemSelect") selectEmitter = new EventEmitter<FoundPlaylist>();
 
     constructor(private client: Client, private authService: AuthService, private router: Router){
         setInterval(() => {
@@ -70,7 +70,7 @@ export class PlaylistSearchComponent {
         this.isFocused = false;
         setTimeout(() => {
             if (!this.isMousedown){
-                //this.showDropdown = false;
+                this.showDropdown = false;
             }
         }, 10);
     }
@@ -87,7 +87,8 @@ export class PlaylistSearchComponent {
         this.isMousedown = true;
     }
 
-    mouseup(channel: FoundPlaylist){
+    mouseup(channel: FoundPlaylist ){
+        console.log(channel);
         this.selectEmitter.emit(channel);
         this.text = "";
         this.isMousedown = false;

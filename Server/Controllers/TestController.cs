@@ -36,35 +36,33 @@ namespace MyVidious.Controllers
         }
 
 
-        [Route("seed")]
-        [HttpGet]
-        public async Task<IActionResult> ReseedMeilisearch()
-        {
-            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
-            //await client.Index("videos").DeleteAsync();
-            var videos = _videoDbContext.Videos.Include(z => z.Channel).ToList();
-            await _meilisearchAccess.AddVideos(videos.Select(z => new VideoMeilisearch
-            {
-                ChannelId = z.ChannelId,
-                Id = z.Id,
-                ChannelName = z.Channel!.Name,
-                Title = z.Title
-            }));
-            return Ok();
-        }
+        //[Route("seed")]
+        //[HttpGet]
+        //public async Task<IActionResult> ReseedMeilisearch()
+        //{
+        //    MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
+        //    //await client.Index("videos").DeleteAsync();
+        //    var videos = _videoDbContext.Videos.Include(z => z.Channel).ToList();
+        //    await _meilisearchAccess.AddVideos(videos.Select(z => new VideoMeilisearch
+        //    {
+        //        ChannelId = z.ChannelId,
+        //        Id = z.Id,
+        //        ChannelName = z.Channel!.Name,
+        //        Title = z.Title
+        //    }));
+        //    return Ok();
+        //}
 
         [Route("search")]
         [HttpGet]
-        public async Task<IActionResult> SearchMeilisearch([FromQuery] string q, [FromQuery] int? id)
+        public async Task<IActionResult> SearchMeilisearch([FromQuery] string q, [FromQuery] int? t)
         {
-            if (id == null)
+            MeilisearchType? type = t.HasValue ? (MeilisearchType)t : null;
+            var res = await _meilisearchAccess.SearchItems(q, 1, new ChannelAndPlaylistIds
             {
-                id = 4;
-            }
-            MeilisearchClient client = new MeilisearchClient("http://localhost:7700", "masterKey");
-            //await client.Index("videos").DeleteAsync();
-            var videos = _videoDbContext.Videos.Include(z => z.Channel).ToList();
-            var res = await _meilisearchAccess.SearchVideoIds(q, 1, new[] {id.Value });
+                ChannelIds = [],
+                PlaylistIds = [1]
+            }, type);
             return Ok(res);
         }
     }

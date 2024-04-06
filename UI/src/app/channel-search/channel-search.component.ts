@@ -12,7 +12,7 @@ import { Subscription } from "rxjs";
 })
 export class ChannelSearchComponent {
     @Input() excludeIds: number[] = []
-    @Output("select") selectEmitter = new EventEmitter<FoundChannel>();
+    @Output("itemSelect") selectEmitter = new EventEmitter<FoundChannel>();
 
     constructor(private client: Client, private authService: AuthService, private router: Router){
         setInterval(() => {
@@ -70,7 +70,7 @@ export class ChannelSearchComponent {
         this.isFocused = false;
         setTimeout(() => {
             if (!this.isMousedown){
-                //this.showDropdown = false;
+                this.showDropdown = false;
             }
         }, 10);
     }

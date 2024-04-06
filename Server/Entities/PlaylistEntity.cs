@@ -9,7 +9,7 @@ public class PlaylistEntity
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
-    public required string Name { get; set; }
+    public required string Title { get; set; }
     /// <summary>
     /// should match the PlaylistId of the invidious API
     /// </summary>

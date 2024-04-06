@@ -24,7 +24,7 @@ SELECT
 	algorithm_item.folder,
 	NULL AS channel_id,
 	algorithm_item.playlist_id,
-	playlist.Name AS Name,
+	playlist.Title AS name,
 	playlist.video_count,
 	playlist.scrape_failure_count AS failure_count
 FROM algorithm_item

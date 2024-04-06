@@ -6,7 +6,8 @@ namespace MyVidious.Data;
 //should match the output of the proc GetRandomAlgorithmVideos
 public class AlgorithmVideoEntity
 {
-    public int ChannelId { get; set; }
+    public int? ChannelId { get; set; }
+    public int? PlaylistId { get; set; }
     public int VideoId { get; set; }
     public double InMemoryFactorIncrease { get; set; }
 }

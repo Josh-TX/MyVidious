@@ -65,7 +65,7 @@ public class PlaylistVideoJob : IJob
         }
         catch (Exception)
         {
-            Console.WriteLine($"Failed to scrape videos for playlist {playlist.Name}");
+            Console.WriteLine($"Failed to load playlist {playlist.Title}");
             playlist.ScrapeFailureCount++;
             playlist.DateLastScraped = DateTime.UtcNow;
             videoDbContext.SaveChanges();
@@ -80,6 +80,16 @@ public class PlaylistVideoJob : IJob
         var videosToAdd = response.Videos.Where(z => !existingUniqueIds.Contains(z.VideoId)).Select(TranslateToEntity).ToList();
         videoDbContext.Videos.AddRange(videosToAdd);
         videoDbContext.SaveChanges();//this should assign a Id to each VideoEntity in videosToAdd
+
+        await _meilisearchAccess.AddItems(videosToAdd.Select(z => new MeilisearchItem
+        {
+            VideoId = z.Id,
+            FilterChannelId = null,
+            FilterPlaylistIds = [playlist.Id],
+            Name = z.Title,
+            SecondName = z.Author,
+        }));
+
         var preservedPlaylistVideos = existingPlaylistVideos.Where(z => existingVideoIds.Contains(z.VideoId)).ToList();
         var playlistVideosToAdd = existingVideoIds
             .Where(z => !preservedPlaylistVideos.Select(z => z.VideoId).Contains(z))

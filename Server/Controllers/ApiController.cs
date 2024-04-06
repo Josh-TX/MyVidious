@@ -52,39 +52,72 @@ public class ApiController : Controller
     [HttpGet]
     public async Task<IActionResult> GetSearchResults([FromRoute] string username, [FromRoute] string algorithm, [FromQuery] SearchRequest request)
     {
-        var channelIds = _algorithmAccess.GetChannelIds(username, algorithm);
+        var channelAndPlaylistIds = _algorithmAccess.GetChannelAndPlaylistIds(username, algorithm);
         if (string.IsNullOrEmpty(request.Q))
         {
             return Ok(Enumerable.Empty<object>());
         }
         if (request.Type == "channel")
         {
-            var foundChannelIds = await _meilisearchAccess.SearchChannelIds(request.Q, request.Page, channelIds, true);
-            var channels = _videoDbContext.Channels.Where(z => foundChannelIds.Contains(z.Id));
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
+            var channelIds = items.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId!.Value);
+            var channels = _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id));
             var searchResults = channels.Select(TranslateToSearchResponse);
             return Ok(searchResults.Select(z => (object)z));
         }
         else if (request.Type == "video")
         {
-            var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
+            var videoIds = items.Where(z => z.VideoId.HasValue).Select(z => z.VideoId!.Value);
             var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
             var searchResults = videos.Select(TranslateToSearchResponse);
             return Ok(searchResults.Select(z => (object)z));
         }
-        else if (request.Type == "playlist" || request.Type == "movie" || request.Type == "show")
+        else if (request.Type == "playlist")
+        {
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds, MeilisearchType.Playlist);
+            var playlistIds = items.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId!.Value);
+            var playlists = _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id));
+            var searchResults = playlists.Select(TranslateToSearchResponse);
+            return Ok(searchResults.Select(z => (object)z));
+        }
+        else if ( request.Type == "movie" || request.Type == "show")
         {
             return Ok(Enumerable.Empty<object>());
         }
-        else 
+        else //all
         {
-            var videoIds = await _meilisearchAccess.SearchVideoIds(request.Q, request.Page, channelIds);
-            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
-            var searchResults_video = videos.Select(TranslateToSearchResponse);
-            var foundChannelIds = await _meilisearchAccess.SearchChannelIds(request.Q, request.Page, channelIds, true);
-            var channels = _videoDbContext.Channels.Where(z => foundChannelIds.Contains(z.Id));
-            var searchResults_channel = channels.Select(TranslateToSearchResponse);
-            var merged = MergeVideosAndChannels(searchResults_channel, searchResults_video);
-            return Ok(merged.Select(z => (object)z));
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
+
+            var videoIds = items.Where(z => z.VideoId.HasValue).Select(z => z.VideoId!.Value);
+            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id)).ToList();
+
+            var channelIds = items.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId!.Value);
+            var channels = _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id)).ToList();
+
+            var playlistIds = items.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId!.Value);
+            var playlists = _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id)).ToList();
+
+            var translatedItems = items.Select(item =>
+            {
+                if (item.VideoId.HasValue)
+                {
+                    var foundVideo = videos.FirstOrDefault(z => z.Id == item.VideoId.Value);
+                    return foundVideo == null ? null : (SearchResponseBase?)TranslateToSearchResponse(foundVideo);
+                }
+                if (item.ChannelId.HasValue)
+                {
+                    var foundChannel = channels.First(z => z.Id == item.ChannelId.Value);
+                    return foundChannel == null ? null : (SearchResponseBase?)TranslateToSearchResponse(foundChannel);
+                }
+                if (item.PlaylistId.HasValue)
+                {
+                    var foundPlaylist = playlists.First(z => z.Id == item.PlaylistId.Value);
+                    return foundPlaylist == null ? null : (SearchResponseBase?)TranslateToSearchResponse(foundPlaylist);
+                }
+                return (SearchResponseBase?)null;
+            });
+            return Ok(translatedItems.Where(z => z != null).Select(z => (object)z!));
         }
     }
 
@@ -178,19 +211,19 @@ public class ApiController : Controller
         };
     }
 
-    private IEnumerable<SearchResponseBase> MergeVideosAndChannels(IEnumerable<SearchResponse_Channel> channels, IEnumerable<SearchResponse_Video> videos)
+    private SearchResponse_Playlist TranslateToSearchResponse(PlaylistEntity playlist)
     {
-        var baseVideos = videos.OfType<SearchResponseBase>();
-        var baseChannels = channels.OfType<SearchResponseBase>();
-        //order is VV C VVV C VVVVV C VVVVVVVVVVVVVVVVVVVVVVVVVV
-        var result = baseVideos.Take(2)
-            .Concat(baseChannels.Take(1))
-            .Concat(baseVideos.Skip(2).Take(3))
-            .Concat(baseChannels.Skip(1).Take(1))
-            .Concat(baseVideos.Skip(5).Take(5))
-            .Concat(baseChannels.Skip(2).Take(1))
-            .Concat(baseVideos.Skip(10))
-            .ToList();
-        return result;
+        return new SearchResponse_Playlist
+        {
+            Type = "playlist",
+            Title = playlist.Title,
+            PlaylistId = playlist.UniqueId,
+            PlaylistThumbnail = playlist.PlaylistThumbnail,
+            Author = playlist.Author,
+            AuthorId = playlist.UniqueId,
+            AuthorUrl = playlist.AuthorUrl,
+            AuthorVerified = false,
+            VideoCount = playlist.VideoCount
+        };
     }
 }
