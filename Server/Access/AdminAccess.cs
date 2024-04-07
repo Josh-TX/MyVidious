@@ -168,6 +168,7 @@ public class AdminAccess
                 Folder = z.Folder,
                 Name = z.Name,
                 VideoCount = z.VideoCount,
+                UniqueId = z.UniqueId,
                 FailureCount = z.FailureCount,
                 EstimatedWeight = Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0)
             }),
@@ -193,17 +194,17 @@ public class AdminAccess
             throw new WebRequestException(400, "each algorithmItem should have precisely 1 of the 4 nullable properties be non-null");
         }
         var newChannels = request.AlgorithmItems.Where(z => z.NewChannel != null).Select(z => z.NewChannel!);
-        var newChannelUniqueIds = newChannels.Select(z => z.AuthorId).ToList();
-        if (newChannelUniqueIds.Count() != newChannelUniqueIds.Distinct().Count())
+        var duplicateChannel = newChannels.GroupBy(z => z.AuthorId).FirstOrDefault(z => z.Count() > 1);
+        if (duplicateChannel != null)
         {
-            throw new WebRequestException(400, "NewChannels contains duplicates");
+            throw new WebRequestException(400, "New Channels contains duplicates: " + string.Join(',', duplicateChannel.Select(z => z.Author)));
         }
 
         var newPlaylists = request.AlgorithmItems.Where(z => z.NewPlaylist != null).Select(z => z.NewPlaylist!);
-        var newPlaylistUniqueIds = newPlaylists.Select(z => z.AuthorId).ToList();
-        if (newPlaylistUniqueIds.Count() != newPlaylistUniqueIds.Distinct().Count())
+        var duplicatePlaylist = newPlaylists.GroupBy(z => z.PlaylistId).FirstOrDefault(z => z.Count() > 1);
+        if (duplicatePlaylist != null)
         {
-            throw new WebRequestException(400, "NewPlaylists contains duplicates");
+            throw new WebRequestException(400, "New Playlists contains duplicates: " + string.Join(',', duplicatePlaylist.Select(z => z.Title)));
         }
 
         var algorithm = request.AlgorithmId.HasValue

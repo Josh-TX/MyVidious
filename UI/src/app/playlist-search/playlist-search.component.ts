@@ -11,7 +11,6 @@ import { Subscription } from "rxjs";
     templateUrl: './playlist-search.component.html'
 })
 export class PlaylistSearchComponent {
-    @Input() excludeIds: number[] = []
     @Output("itemSelect") selectEmitter = new EventEmitter<FoundPlaylist>();
 
     constructor(private client: Client, private authService: AuthService, private router: Router){
@@ -48,7 +47,7 @@ export class PlaylistSearchComponent {
             this.timeoutId = setTimeout(() => {
                 this.subscription = this.client.searchPlaylists(this.text).subscribe({
                     next: results => {
-                        this.results = results.filter(z => !this.excludeIds.includes(<any>z.playlistId));
+                        this.results = results;
                         this.isLoading = false;
                         this.showDropdown = true;
                         this.thumbCount = 0;
@@ -88,7 +87,6 @@ export class PlaylistSearchComponent {
     }
 
     mouseup(channel: FoundPlaylist ){
-        console.log(channel);
         this.selectEmitter.emit(channel);
         this.text = "";
         this.isMousedown = false;

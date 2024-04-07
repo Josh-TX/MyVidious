@@ -3,6 +3,8 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet-build
 
 ARG TARGETARCH
 WORKDIR /source
+COPY Server/MyVidious.csproj ./
+RUN dotnet restore
 COPY Server/. .
 RUN dotnet publish -a $TARGETARCH -o /app
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using MyVidious.Access;
 using MyVidious.Background;
@@ -107,22 +108,25 @@ services.AddQuartz(quartz =>
     quartz.AddTrigger(trigger =>
         trigger.ForJob(channelVideoJobKey)
         .StartAt(DateTimeOffset.UtcNow.AddMinutes(15))
-        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(60)).RepeatForever())
     );
 
     var playlistVideoJobKey = JobKey.Create(nameof(PlaylistVideoJob));
     quartz.AddJob<PlaylistVideoJob>(playlistVideoJobKey, options => options.DisallowConcurrentExecution());
     quartz.AddTrigger(trigger =>
     trigger.ForJob(playlistVideoJobKey)
-        .StartAt(DateTimeOffset.UtcNow.AddSeconds(5))
-        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
+        .StartAt(DateTimeOffset.UtcNow.AddMinutes(30))
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromMinutes(60)).RepeatForever())
     );
 
-    quartz.AddJob<VideoDetailsJob>(JobKey.Create(nameof(VideoDetailsJob)), options =>
-    {
-        options.StoreDurably();
-        options.DisallowConcurrentExecution();
-    });
+
+    var videoDetailsJobKey = JobKey.Create(nameof(VideoDetailsJob));
+    quartz.AddJob<VideoDetailsJob>(videoDetailsJobKey, options => options.DisallowConcurrentExecution());
+    quartz.AddTrigger(trigger =>
+    trigger.ForJob(videoDetailsJobKey)
+        .StartAt(DateTimeOffset.UtcNow.AddMinutes(45))
+        .WithSimpleSchedule(schedule => schedule.WithInterval(TimeSpan.FromHours(2)).RepeatForever())
+    );
 });
 services.AddQuartzHostedService();
 
@@ -130,7 +134,9 @@ var app = builder.Build();
 
 app.UseMiddleware<WebRequestExceptionMiddleware>();
 app.MapControllers();
-app.UseDeveloperExceptionPage();
+#if DEBUG
+//app.UseDeveloperExceptionPage(); //This prevents the WebRequestExceptionMiddleware from working correctly
+#endif
 app.UseSwagger();
 app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious API V1"));
 app.MapReverseProxy();

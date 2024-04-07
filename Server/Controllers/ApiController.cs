@@ -2,10 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using MyVidious.Access;
 using MyVidious.Data;
 using Microsoft.EntityFrameworkCore;
-using Meilisearch;
 using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace MyVidious.Controllers;
 
@@ -59,26 +57,39 @@ public class ApiController : Controller
         }
         if (request.Type == "channel")
         {
-            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds, MeilisearchType.Channel);
             var channelIds = items.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId!.Value);
-            var channels = _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id));
-            var searchResults = channels.Select(TranslateToSearchResponse);
+            if (!channelIds.Any())
+            {
+                return Ok(Enumerable.Empty<object>());
+            }
+            var channels = _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id)).ToList();
+            var searchResults = channels.Select(TranslateToSearchResponse).ToList();
             return Ok(searchResults.Select(z => (object)z));
         }
         else if (request.Type == "video")
         {
-            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
+            var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds, MeilisearchType.Video);
             var videoIds = items.Where(z => z.VideoId.HasValue).Select(z => z.VideoId!.Value);
-            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id));
-            var searchResults = videos.Select(TranslateToSearchResponse);
+            if (!videoIds.Any())
+            {
+                return Ok(Enumerable.Empty<object>());
+            }
+            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id)).ToList();
+            var searchResults = videos.Select(TranslateToSearchResponse).ToList();
             return Ok(searchResults.Select(z => (object)z));
         }
         else if (request.Type == "playlist")
         {
             var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds, MeilisearchType.Playlist);
             var playlistIds = items.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId!.Value);
-            var playlists = _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id));
-            var searchResults = playlists.Select(TranslateToSearchResponse);
+            if (!playlistIds.Any())
+            {
+                return Ok(Enumerable.Empty<object>());
+            }
+            var playlists = _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id)).ToList();
+            var allTempPlaylistVideos = GetTempPlaylistVideos(playlistIds);
+            var searchResults = playlists.Select(z => TranslateToSearchResponse(z, allTempPlaylistVideos)).ToList();
             return Ok(searchResults.Select(z => (object)z));
         }
         else if ( request.Type == "movie" || request.Type == "show")
@@ -90,14 +101,21 @@ public class ApiController : Controller
             var items = await _meilisearchAccess.SearchItems(request.Q, request.Page, channelAndPlaylistIds);
 
             var videoIds = items.Where(z => z.VideoId.HasValue).Select(z => z.VideoId!.Value);
-            var videos = _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id)).ToList();
+            var videos = videoIds.Any() 
+                ? _videoDbContext.Videos.Where(z => videoIds.Contains(z.Id)).ToList()
+                : new List<VideoEntity>();
 
             var channelIds = items.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId!.Value);
-            var channels = _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id)).ToList();
+            var channels = channelIds.Any()
+                ? _videoDbContext.Channels.Where(z => channelIds.Contains(z.Id)).ToList()
+                : new List<ChannelEntity>();
 
             var playlistIds = items.Where(z => z.PlaylistId.HasValue).Select(z => z.PlaylistId!.Value);
-            var playlists = _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id)).ToList();
+            var playlists = playlistIds.Any()
+                ? _videoDbContext.Playlists.Where(z => playlistIds.Contains(z.Id)).ToList()
+                : new List<PlaylistEntity>();
 
+            var allTempPlaylistVideos = GetTempPlaylistVideos(playlistIds);
             var translatedItems = items.Select(item =>
             {
                 if (item.VideoId.HasValue)
@@ -113,10 +131,10 @@ public class ApiController : Controller
                 if (item.PlaylistId.HasValue)
                 {
                     var foundPlaylist = playlists.First(z => z.Id == item.PlaylistId.Value);
-                    return foundPlaylist == null ? null : (SearchResponseBase?)TranslateToSearchResponse(foundPlaylist);
+                    return foundPlaylist == null ? null : (SearchResponseBase?)TranslateToSearchResponse(foundPlaylist, allTempPlaylistVideos);
                 }
                 return (SearchResponseBase?)null;
-            });
+            }).ToList();
             return Ok(translatedItems.Where(z => z != null).Select(z => (object)z!));
         }
     }
@@ -149,13 +167,29 @@ public class ApiController : Controller
         return await _invidiousAPIAccess.GetChannelVideos(channelId, request);
     }
 
+    private IEnumerable<TempPlaylistVideo> GetTempPlaylistVideos(IEnumerable<int> playlistIds)
+    {
+        if (!playlistIds.Any())
+        {
+            return Enumerable.Empty<TempPlaylistVideo>();
+        }
+        return _videoDbContext.Videos.Join(_videoDbContext.PlaylistVideos, v => v.Id, pv => pv.VideoId, (v, pv) => new TempPlaylistVideo
+        {
+            PlaylistId = pv.PlaylistId,
+            Title = v.Title,
+            UniqueId = v.UniqueId,
+            LengthSeconds = v.LengthSeconds,
+            ThumbnailsJson = v.ThumbnailsJson,
+        }).Where(z => playlistIds.Contains(z.PlaylistId)).ToList();
+    }
+
     private SearchResponse_Video TranslateToSearchResponse(VideoEntity video)
     {
         var thumbnails = video.ThumbnailsJson != null
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : Enumerable.Empty<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
-        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         return new SearchResponse_Video
         {
             Type = "video",
@@ -211,8 +245,9 @@ public class ApiController : Controller
         };
     }
 
-    private SearchResponse_Playlist TranslateToSearchResponse(PlaylistEntity playlist)
+    private SearchResponse_Playlist TranslateToSearchResponse(PlaylistEntity playlist, IEnumerable<TempPlaylistVideo> allTempPlaylistVideos)
     {
+        var matchingPlaylistVideos = allTempPlaylistVideos.Where(z => z.PlaylistId == playlist.Id);
         return new SearchResponse_Playlist
         {
             Type = "playlist",
@@ -223,7 +258,30 @@ public class ApiController : Controller
             AuthorId = playlist.UniqueId,
             AuthorUrl = playlist.AuthorUrl,
             AuthorVerified = false,
-            VideoCount = playlist.VideoCount
+            VideoCount = playlist.VideoCount,
+            Videos = matchingPlaylistVideos.Select(z =>
+            {
+                var thumbnails = z.ThumbnailsJson != null
+                    ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(z.ThumbnailsJson)!.ToList()
+                    : Enumerable.Empty<VideoThumbnail>();
+                thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
+                return new PlaylistVideo
+                {
+                    VideoId = z.UniqueId,
+                    VideoThumbnails = thumbnails,
+                    Title = z.Title,
+                    LengthSeconds = z.LengthSeconds
+                };
+            }).ToList()
         };
+    }
+
+    private class TempPlaylistVideo
+    {
+        public int PlaylistId { get; set; }
+        public int LengthSeconds { get; set; }
+        public required string Title { get; set; }
+        public required string UniqueId { get; set; }
+        public string? ThumbnailsJson { get; set; }
     }
 }

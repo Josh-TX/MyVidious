@@ -12,6 +12,7 @@ public class AlgorithmItemInfoEntity
     public string? Folder { get; set; }
     public int MaxItemWeight { get; set; }
     public required string Name { get; set; }
+    public required string UniqueId { get; set; }
     public int VideoCount { get; set; }
     public int FailureCount { get; set; }
 }

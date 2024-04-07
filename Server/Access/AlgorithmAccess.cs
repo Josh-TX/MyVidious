@@ -187,7 +187,7 @@ public class AlgorithmAccess
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
-        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         return new VideoObject
         {
             Type = "video",
@@ -222,7 +222,7 @@ public class AlgorithmAccess
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
             : new List<VideoThumbnail>();
         thumbnails = thumbnails.Select(_imageUrlUtility.FixImageUrl).ToList();
-        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTime.Now.ToFileTimeUtc();
+        var published = video.ActualPublished ?? video.EstimatedPublished ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         return new PopularVideo
         {
             Type = "shortVideo",

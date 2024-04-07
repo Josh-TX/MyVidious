@@ -73,6 +73,7 @@ namespace MyVidious.Controllers
                     WeightMultiplier = z.WeightMultiplier,
                     Name = z.Name,
                     VideoCount = z.VideoCount,
+                    UniqueId = z.UniqueId,
                     FailureCount = z.FailureCount,
                     EstimatedWeight = Math.Min(z.MaxItemWeight, z.VideoCount) * Math.Max(z.WeightMultiplier, 0)
                 }),

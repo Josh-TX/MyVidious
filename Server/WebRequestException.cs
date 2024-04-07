@@ -30,9 +30,7 @@ public class WebRequestExceptionMiddleware
         {
             context.Response.StatusCode = ex.StatusCode;
             context.Response.ContentType = "application/json";
-
-            var response = JsonConvert.SerializeObject(new { error = ex.Message });
-            await context.Response.WriteAsync(response);
+            await context.Response.WriteAsync(ex.Message);
         }
     }
 }

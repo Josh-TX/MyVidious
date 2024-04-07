@@ -1215,6 +1215,7 @@ export interface LoadAlgorithmItem {
     channelId?: number | undefined;
     weightMultiplier?: number;
     name?: string | undefined;
+    uniqueId?: string | undefined;
     folder?: string | undefined;
     videoCount?: number | undefined;
     failureCount?: number;

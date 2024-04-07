@@ -7,6 +7,7 @@ SELECT
 	NULL AS playlist_id,
 	channel.name,
 	channel.video_count,
+	channel.unique_id,
 	channel.scrape_failure_count AS failure_count
 FROM algorithm_item
 JOIN channel
@@ -26,6 +27,7 @@ SELECT
 	algorithm_item.playlist_id,
 	playlist.Title AS name,
 	playlist.video_count,
+	playlist.unique_id,
 	playlist.scrape_failure_count AS failure_count
 FROM algorithm_item
 JOIN playlist 

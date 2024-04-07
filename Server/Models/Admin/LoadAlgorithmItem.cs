@@ -6,6 +6,7 @@ public class LoadAlgorithmItem
     public int? ChannelId { get; set; }
     public required double WeightMultiplier { get; set; }
     public required string Name { get; set; }
+    public required string UniqueId { get; set; }
     public string? Folder { get; set; }
     public int? VideoCount { get; set; }
     public required int FailureCount { get; set; }

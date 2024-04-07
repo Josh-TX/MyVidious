@@ -91,15 +91,14 @@ public class PlaylistVideoJob : IJob
         }));
 
         var preservedPlaylistVideos = existingPlaylistVideos.Where(z => existingVideoIds.Contains(z.VideoId)).ToList();
-        var playlistVideosToAdd = existingVideoIds
-            .Where(z => !preservedPlaylistVideos.Select(z => z.VideoId).Contains(z))
-            .Concat(videosToAdd.Select(z => z.Id))
-            .Select(z => new PlaylistVideoEntity
+        var existingVideoIdsToAdd = existingVideoIds.Where(z => !preservedPlaylistVideos.Select(z => z.VideoId).Contains(z)).ToList();
+        var playlistVideosToAdd = existingVideoIdsToAdd.Concat(videosToAdd.Select(z => z.Id)).Select(z => new PlaylistVideoEntity
         {
             VideoId = z,
             PlaylistId = playlist.Id
-        });
-        var removedPlaylistVideos = existingPlaylistVideos.Except(preservedPlaylistVideos);
+        }).ToList();
+        var removedPlaylistVideos = existingPlaylistVideos.Except(preservedPlaylistVideos).ToList();
+        var removedPlaylistVideoIds = removedPlaylistVideos.Select(z => z.VideoId).ToList();
         videoDbContext.PlaylistVideos.RemoveRange(removedPlaylistVideos);
         videoDbContext.PlaylistVideos.AddRange(playlistVideosToAdd);
 
@@ -114,6 +113,16 @@ public class PlaylistVideoJob : IJob
         }
         playlist.DateLastScraped = DateTime.UtcNow;
         videoDbContext.SaveChanges();
+        
+        if (existingVideoIdsToAdd.Any())
+        {
+            await _meilisearchAccess.AddPlaylistIds(existingVideoIdsToAdd, playlist.Id);
+        }
+        if (removedPlaylistVideos.Any())
+        {
+            await _meilisearchAccess.RemovePlaylistIds(removedPlaylistVideoIds, playlist.Id);
+        }
+
         if (videosToAdd.Any())
         {
             //the video in PlaylistResponse.Videos doesn't contain all the information we want regarding a video

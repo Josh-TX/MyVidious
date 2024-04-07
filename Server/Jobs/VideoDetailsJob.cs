@@ -39,7 +39,23 @@ public class VideoDetailsJob : IJob
             await UpdateVideos(context.CancellationToken, videoIds);
         } else
         {
+            await UpdateVideos(context.CancellationToken);
+        }
+    }
 
+    private async Task UpdateVideos(CancellationToken stoppingToken)
+    {
+        using var scope = _serviceScopeFactory.CreateScope();
+        var videoDbContext = scope.ServiceProvider.GetRequiredService<VideoDbContext>();
+        var cutoff = DateTime.UtcNow.AddHours(-48);
+        var videos = videoDbContext.Videos.Where(z => !z.EstimatedPublished.HasValue).Take(100).ToList();
+        foreach (var video in videos)
+        {
+            await UpdateVideo(videoDbContext, video);
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
         }
     }
 

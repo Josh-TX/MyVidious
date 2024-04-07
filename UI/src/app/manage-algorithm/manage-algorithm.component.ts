@@ -24,6 +24,7 @@ type AlgorithmItem = {
     name?: string | undefined;
     videoCount: number;
     selected: boolean;
+    uniqueId: string;
     folderName?: string | undefined
 }
 
@@ -50,7 +51,6 @@ export class ManageAlgorithmComponent {
     folders: Folder[] = [];
     tableRows: TableRow[] = [];
     maxItemWeight: number = 100;
-
 
     algorithmId: number | undefined;
 
@@ -115,6 +115,7 @@ export class ManageAlgorithmComponent {
                 playlistId: z.playlistId,
                 weightMultiplier: z.weightMultiplier,
                 videoCount: z.videoCount || 0,
+                uniqueId: z.uniqueId!,
                 selected: false,
                 folderName: z.folder
             }));
@@ -160,22 +161,32 @@ export class ManageAlgorithmComponent {
     }
 
     addChannel(channel: FoundChannel) {
+        if (this.allItems.some(z => z.uniqueId == channel.authorId)){
+            this.snackBar.open("channel already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
+            return;
+        }
         this.allItems.push({
             channelId: channel.channelId,
             newChannel: channel.channelId ? undefined : channel,
             weightMultiplier: 1,
             name: channel.author,
+            uniqueId: channel.authorId!,
             videoCount: channel.videoCount!,
             selected: this.isAllSelected()
         })
         this.updateTableRows();
     }
     addPlaylist(playlist: FoundPlaylist) {
+        if (this.allItems.some(z => z.uniqueId == playlist.playlistId)){
+            this.snackBar.open("playlist already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
+            return;
+        }
         this.allItems.push({
             playlistId: playlist.myvidiousPlaylistId,
             newPlaylist: playlist.myvidiousPlaylistId ? undefined : playlist,
             weightMultiplier: 1,
             name: playlist.title,
+            uniqueId: playlist.playlistId!,
             videoCount: playlist.videoCount!,
             selected: this.isAllSelected()
         })
@@ -314,11 +325,10 @@ export class ManageAlgorithmComponent {
     }
 
     isAllSelected(): boolean {
-        return this.allItems.every(z => z.selected)
+        return this.allItems.length > 0 && this.allItems.every(z => z.selected)
     }
-
-    isNoneSelected(): boolean {
-        return this.allItems.every(z => !z.selected)
+    isIndeterminate(): boolean {
+        return this.allItems.some(z => z.selected) && this.allItems.some(z => !z.selected)
     }
 
     getSelectedCount(): number {

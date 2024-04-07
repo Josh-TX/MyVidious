@@ -2,6 +2,7 @@ using Meilisearch;
 using MyVidious.Data;
 using MyVidious.Models;
 using MyVidious.Models.Invidious;
+using System.Linq;
 
 namespace MyVidious.Access;
 
@@ -43,8 +44,51 @@ public class MeilisearchAccess
         }
     }
 
+    public async Task AddPlaylistIds(IEnumerable<int> videoIds, int playlistId)
+    {
+        var client = GetClient();
+        if (_mainIndexConfigured != true)
+        {
+            await ConfigureMainIndex(client);
+        }
+        var index = client.Index(MAIN_INDEX);
+        var tasks = videoIds.Select(z => index.GetDocumentAsync<MeilisearchStoredItem>(z)).ToList();
+        await Task.WhenAll(tasks);
+        var documents = tasks.Select(z => z.Result).ToList();
+        foreach(var document in documents)
+        {
+            document.FilterIds = document.FilterIds.Append(playlistId + FILTER_PLAYLIST_ID_OFFSET);
+        }
+        await index.UpdateDocumentsAsync(documents);
+    }
+
+    public async Task RemovePlaylistIds(IEnumerable<int> videoIds, int playlistId)
+    {
+        var filterPlaylistId = playlistId + FILTER_PLAYLIST_ID_OFFSET;
+        var client = GetClient();
+        if (_mainIndexConfigured != true)
+        {
+            await ConfigureMainIndex(client);
+        }
+        var index = client.Index(MAIN_INDEX);
+        var tasks = videoIds.Select(z => index.GetDocumentAsync<MeilisearchStoredItem>(z)).ToList();
+        await Task.WhenAll(tasks);
+        var documents = tasks.Select(z => z.Result).ToList();
+        var documentsToUpdate = new List<MeilisearchStoredItem>();
+        foreach (var document in documents)
+        {
+            if (document.FilterIds.Contains(filterPlaylistId))
+            {
+                document.FilterIds = document.FilterIds.Where(z => z != filterPlaylistId);
+                documentsToUpdate.Add(document);
+            }
+        }
+        await index.UpdateDocumentsAsync(documentsToUpdate);
+    }
+
     public async Task<IEnumerable<MeilisearchItem>> SearchItems(string searchText, int? page, ChannelAndPlaylistIds channelAndPlaylistIds, MeilisearchType? type = null)
     {
+        searchText = searchText.Trim();
         var client = GetClient();
         if (_mainIndexConfigured != true)
         {
@@ -57,12 +101,25 @@ public class MeilisearchAccess
         {
             filter = $"type = {(int)type} AND " + filter;
         }
+        page ??= 1;
         var searchable = await index.SearchAsync<MeilisearchStoredItem>(searchText, new SearchQuery
         {
             Filter = filter,
             HitsPerPage = 20,
-            Page = page.HasValue ? page.Value : 1
+            Page = page.Value
         });
+        if (page == 1 && searchable.Hits.Count == 0 && searchText.Contains(" "))
+        {
+            //meilisearch 1.7 has very bizare matching logic wherein all results must contain the first word, but other words are optional
+            //I regret choosing meilisearch, but I've invested too much time in it to change to something else. Maybe a future update will fix this. 
+            //For now, I'll mitgate the issue by searching again, but removing the first word (so now the 2nd word is required to match). 
+            searchable = await index.SearchAsync<MeilisearchStoredItem>(searchText.Substring(searchText.IndexOf(" ") + 1), new SearchQuery
+            {
+                Filter = filter,
+                HitsPerPage = 20,
+                Page = page.Value
+            });
+        }
         var items = searchable.Hits.Select(TranslateFromStored).ToList();
         return items;
     }
@@ -117,7 +174,7 @@ public class MeilisearchAccess
         }
         else if (item.Id > CHANNEL_ID_OFFSET)
         {
-            playlistId = (int)(item.Id - CHANNEL_ID_OFFSET);
+            channelId = (int)(item.Id - CHANNEL_ID_OFFSET);
         } else
         {
             videoId = (int)item.Id;

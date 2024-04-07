@@ -10,8 +10,7 @@ import { Subscription } from "rxjs";
     selector: "channel-search",
     templateUrl: './channel-search.component.html'
 })
-export class ChannelSearchComponent {
-    @Input() excludeIds: number[] = []
+export class ChannelSearchComponent { 
     @Output("itemSelect") selectEmitter = new EventEmitter<FoundChannel>();
 
     constructor(private client: Client, private authService: AuthService, private router: Router){
@@ -48,7 +47,7 @@ export class ChannelSearchComponent {
             this.timeoutId = setTimeout(() => {
                 this.subscription = this.client.searchChannels(this.text).subscribe({
                     next: results => {
-                        this.results = results.filter(z => !this.excludeIds.includes(<any>z.channelId));
+                        this.results = results;
                         this.isLoading = false;
                         this.showDropdown = true;
                         this.thumbCount = 0;
