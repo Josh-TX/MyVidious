@@ -27,6 +27,8 @@ public class VideoDbContext : DbContext
     public DbSet<AlgorithmEntity> Algorithms { get; set; }
     public DbSet<AlgorithmItemEntity> AlgorithmItems { get; set; }
 
+    public DbSet<InviteCodeEntity> InviteCodes { get; set; }
+
 
     public IQueryable<AlgorithmItemInfoEntity> GetAlgorithmItemInfos()
     {

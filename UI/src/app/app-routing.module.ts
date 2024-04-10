@@ -2,10 +2,11 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
-import { authGuardFunction } from './services/auth-guard';
+import { authGuardFunction, adminGuardFunction } from './services/auth-guard';
 import { CreateUserComponent } from './create-user/create-user.component';
 import { noAuthGuardFunction } from './services/no-auth-guard';
 import { ManageAlgorithmComponent } from './manage-algorithm/manage-algorithm.component';
+import { ManageInvitesComponent } from './manage-invites/manage-invites.component';
 
 const routes: Routes = [
     {
@@ -27,6 +28,11 @@ const routes: Routes = [
         path: "dashboard",
         component: DashboardComponent,
         canActivate: [authGuardFunction]
+    },
+    {
+        path: "invite-codes",
+        component: ManageInvitesComponent,
+        canActivate: [adminGuardFunction]
     },
     {
         path: "algorithm/:id",

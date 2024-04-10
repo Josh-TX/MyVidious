@@ -1,0 +1,52 @@
+<div style="margin: 16px; max-width: 800px;" *ngIf="invites">
+    <h2 style="margin-bottom: 16px;">Manage Invite Codes</h2>
+
+    <mat-checkbox [checked]="openInvite" color="primary"
+        (change)="openInvite = !openInvite">
+        Open Invite
+    </mat-checkbox>
+
+    <p *ngIf="openInvite">Since open invite is enabled, anyone can create an account without needing an invite code</p>
+    <p *ngIf="!openInvite">Open invite is disabled, meaning an invite code is required to create an account. 
+        <span *ngIf="!invites.length">Since you have no active invite codes, registration is essentially closed</span>
+    </p>
+    <div style="display: flex; justify-content: space-between;">
+        <button mat-raised-button *ngIf="!openInvite" (click)="add()">Add Invite Code</button>
+        <div></div>
+        <button mat-raised-button color="primary" (click)="save()">Save Changes</button>
+    </div>
+
+    <table #table *ngIf="!openInvite && invites" mat-table [dataSource]="invites" class="mat-elevation-z8" style="margin-top: 16px;">
+        <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef>
+                Invite Codes
+            </th>
+            <td mat-cell *matCellDef="let item">
+                {{item.code}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="remaining">
+            <th mat-header-cell *matHeaderCellDef>Remaining Uses</th>
+            <td mat-cell *matCellDef="let item">
+                <input type="number" [(ngModel)]="item.remainingUses">
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="used">
+            <th mat-header-cell *matHeaderCellDef>
+                # of times used
+            </th>
+            <td mat-cell *matCellDef="let item">
+                {{item.usageCount}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>
+            </th>
+            <td mat-cell *matCellDef="let item">
+                <button mat-raised-button (click)="remove(item)">Remove</button>
+            </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+</div>

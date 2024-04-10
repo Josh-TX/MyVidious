@@ -21,3 +21,17 @@ export const authGuardFunction: CanActivateFn = (
             return false;
         }))
   }
+
+export const adminGuardFunction: CanActivateFn = (
+    next: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot) => {
+        const authService = inject(AuthService);
+        const router = inject(Router);
+        return authService.getUserInfoAsync().pipe(take(1), map(userInfo => {
+            if (userInfo.isAdmin != null){
+                return true;
+            } 
+            router.navigate(["/dashboard"]);
+            return false;
+        }))
+  }

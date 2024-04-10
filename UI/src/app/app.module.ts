@@ -20,6 +20,7 @@ import { ChannelSearchComponent } from './channel-search/channel-search.componen
 import { PlaylistSearchComponent } from './playlist-search/playlist-search.component';
 
 
+import { ManageInvitesComponent } from './manage-invites/manage-invites.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { ManageAlgorithmComponent } from './manage-algorithm/manage-algorithm.component';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -38,7 +39,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
     ManageAlgorithmComponent,
     ChannelSearchComponent,
     LoaderComponent,
-    PlaylistSearchComponent
+    PlaylistSearchComponent,
+    ManageInvitesComponent
   ],
   imports: [
     BrowserModule,

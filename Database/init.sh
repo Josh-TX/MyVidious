@@ -19,3 +19,4 @@ psql --username "$POSTGRES_USER" --dbname invidious < /docker-entrypoint-initdb.
 psql -c "CREATE DATABASE myvidious;"
 psql --username "$POSTGRES_USER" --dbname myvidious < /docker-entrypoint-initdb.d/sql/videoDbContext.sql
 psql --username "$POSTGRES_USER" --dbname myvidious < /docker-entrypoint-initdb.d/sql/identityDbContext.sql
+psql --username "$POSTGRES_USER" --dbname myvidious < /docker-entrypoint-initdb.d/sql/seed.sql

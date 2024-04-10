@@ -2,10 +2,11 @@
     <div style="display: flex; align-items: center;">
         <h3 *ngIf="!algorithmId">New Algorithm will be available at:</h3>
         <h3 *ngIf="algorithmId">Algorithm available at:</h3>
-        <button mat-raised-button style="margin-left: 16px;" [disabled]="!name" (click)="copy()">
+        <button mat-raised-button style="margin-left: 16px;" *ngIf="name" (click)="copy()">
             {{getPath()}}
             <mat-icon>content_copy</mat-icon>
         </button>
+        <span *ngIf="!name" style="color: #BBB;">&nbsp;(enter a name)</span>
         <div style="flex-grow: 1;"></div>
         <button mat-raised-button [matMenuTriggerFor]="deleteMenu">
             Actions

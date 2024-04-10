@@ -143,3 +143,13 @@ export function sortBy<T>(items: T[], selectorFunc: (t:T) => number){
 export function sortByDesc<T>(items: T[], selectorFunc: (t:T) => number){
   items.sort((t1, t2) => selectorFunc(t2) - selectorFunc(t1));
 }
+
+export function generateRandomCode(length: number) {
+  //exclude 1lIO0 because similar
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}

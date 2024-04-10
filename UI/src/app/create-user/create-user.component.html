@@ -1,7 +1,16 @@
-<div class="h-100" style="background: #DEF; padding-top: 20vh;">
+<div class="margin-bottom" style="background: #DEF; padding-top: 15vh;">
     <div style="margin: 0 auto; max-width: 300px; padding: 24px; background: white;" >
         <h3 style="margin-bottom: 16px;">Create <span *ngIf="isFirstUser">Head Admin</span> User</h3>
-        <form (submit)="create()" autocomplete=false>
+        <h4 *ngIf="openInvite === false">Registration has been closed by the head admin</h4>
+        <div *ngIf="openInvite == null" style="margin-bottom: 4px;">
+            <small>Invite Code Required</small>
+        </div>
+        <form *ngIf="openInvite !== false" (submit)="create()" autocomplete=false>
+            <mat-form-field class="w-100" *ngIf="openInvite == null">
+                <mat-label>Invite Code</mat-label>
+                <input matInput [(ngModel)]="inviteCode" name="inviteCode">
+            </mat-form-field>
+
             <mat-form-field class="w-100">
                 <mat-label>Username</mat-label>
                 <input matInput [(ngModel)]="username" name="username">

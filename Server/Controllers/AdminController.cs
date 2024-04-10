@@ -96,6 +96,37 @@ namespace MyVidious.Controllers
         }
 
 
+        [HttpGet("api/invite-codes")]
+        [Authorize(Roles = "admin")]
+        public async Task<IEnumerable<InviteCode>> GetInviteCodes()
+        {
+            var inviteCodes = _videoDbContext.InviteCodes.ToList();
+            return inviteCodes.Select(z => new InviteCode
+            {
+                Code = z.Code,
+                UsageCount = z.UsageCount,
+                RemainingUses = z.RemainingUses
+            });
+        }
+
+        [HttpPut("api/invite-codes")]
+        [Authorize(Roles = "admin")]
+        public IActionResult UpdateInviteCodes([FromBody] IEnumerable<InviteCode> inviteCodes)
+        {
+            //not the most effecient, but it doesn't need to be effecient
+            var existingInviteCode = _videoDbContext.InviteCodes.ToList();
+            _videoDbContext.InviteCodes.RemoveRange(existingInviteCode);
+            _videoDbContext.InviteCodes.AddRange(inviteCodes.Select(z => new InviteCodeEntity
+            {
+                Code = z.Code,
+                UsageCount = z.UsageCount,
+                RemainingUses = z.RemainingUses
+            }).ToList());
+            _videoDbContext.SaveChanges();
+            return Ok();
+        }
+
+
         [HttpGet("api/user-info")]
         public async Task<UserInfo> GetUserInfo()
         {
@@ -109,27 +140,44 @@ namespace MyVidious.Controllers
             var isAdmin = user != null
                 ? (await _userManager.GetRolesAsync(user)).Any(z => z == "admin")
                 : false;
+            var emptyInviteCode = _videoDbContext.InviteCodes.Any(z => z.Code == "");
+            var anyInviteCode = emptyInviteCode ? true : _videoDbContext.InviteCodes.Any();
             return new UserInfo
             {
                 Username = user?.UserName,
                 AnyUsers = anyUsers,
-                IsAdmin = isAdmin
+                IsAdmin = isAdmin,
+                OpenInvite = emptyInviteCode ? true : (anyInviteCode ? null : false)
             };
         }
 
         [HttpPost("api/create-user")]
         [ProducesResponseType(typeof(UserInfo), 200)]
-        [ProducesResponseType(typeof(string), 400, "text/plain")]
+        [SwaggerResponse(400, "validation issues", typeof(string), "text/plain")]
         public async Task<IActionResult> CreateUser([FromBody] CreateAccountRequest request)
         {
             if (request.Username.ToLower() == "admin")
             {
                 return BadRequest("Username admin is not allowed");//since /admin is reserved for the admin interface
             }
+            if (request.Username.Length < 3)
+            {
+                return BadRequest("Username must be at least 3 chars long");
+            }
             var existingUser = await _userManager.FindByNameAsync(request.Username);
             if (existingUser != null)
             {
                 return BadRequest("User already exists.");
+            }
+            request.InviteCode ??= "";
+            var inviteCode = _videoDbContext.InviteCodes.FirstOrDefault(z => z.Code == request.InviteCode);
+            if (inviteCode != null && inviteCode.RemainingUses > 0)
+            {
+                inviteCode.RemainingUses--;
+                inviteCode.UsageCount++;
+            } else
+            {
+                return BadRequest("Invalid Invite Code");
             }
             var isAdmin = !_userManager.Users.Any();
             var user = new IdentityUser
@@ -137,13 +185,13 @@ namespace MyVidious.Controllers
                 Id = Guid.NewGuid().ToString(),
                 UserName = request.Username,
             };
-
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
                 var resultErrors = result.Errors.Select(e => e.Description);
                 return BadRequest(string.Join("\n", resultErrors));
             }
+            _videoDbContext.SaveChanges();
             if (isAdmin)
             {
                 var role = new IdentityRole
@@ -166,7 +214,7 @@ namespace MyVidious.Controllers
 
         [HttpPost("api/login")]
         [ProducesResponseType(typeof(UserInfo), 200)]
-        [ProducesResponseType(typeof(string), 400, "text/plain")]
+        [SwaggerResponse(400, "validation issues", typeof(string), "text/plain")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var user = await _userManager.FindByNameAsync(request.Username);

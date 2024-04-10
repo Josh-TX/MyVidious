@@ -1,6 +1,9 @@
-<div style="height: 48px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 0 12px;">
-    <a style="margin: 0; cursor: pointer; font-size: 24px; color: black;" [routerLink]="['/dashboard']">MyVidious Admin</a>
-    <div *ngIf="userInfo">
+<div style="height: 48px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 0 12px;">
+    <a style="margin: 0; cursor: pointer; font-size: 24px; color: black;" [routerLink]="['/dashboard']" routerLinkActive="active" >MyVidious Admin</a>
+    <a *ngIf="userInfo && userInfo.username" class="nav-item"style="margin-left: 8px;" [routerLink]="['/dashboard']" routerLinkActive="active" >Home </a>
+    <a *ngIf="userInfo && userInfo.isAdmin" class="nav-item" [routerLink]="['/invite-codes']" routerLinkActive="active" >Invite Codes</a>
+    <div style="flex: 1;"></div>
+    <div *ngIf="userInfo && userInfo.username">
         <button mat-button [matMenuTriggerFor]="menu">
             <mat-icon class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color">person</mat-icon>
             {{userInfo.username}}

@@ -43,8 +43,17 @@ services.AddIdentityCore<IdentityUser>(options => {
 services.AddAuthentication(defaultScheme: CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
-        options.Events.OnRedirectToAccessDenied = ReplaceRedirector(HttpStatusCode.Forbidden, options.Events.OnRedirectToAccessDenied);
-        options.Events.OnRedirectToLogin = ReplaceRedirector(HttpStatusCode.Unauthorized, options.Events.OnRedirectToLogin);
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+            return Task.CompletedTask;
+        };
+        
     });
 services.AddAuthorization(options =>
 {
@@ -142,16 +151,3 @@ app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious A
 app.MapReverseProxy();
 
 app.Run();
-
-
-static Func<RedirectContext<CookieAuthenticationOptions>, Task> ReplaceRedirector(
-    HttpStatusCode statusCode,
-    Func<RedirectContext<CookieAuthenticationOptions>, Task> existingRedirector) => context =>
-    {
-        if (context.Request.Path.StartsWithSegments("/account"))
-        {
-            context.Response.StatusCode = (int)statusCode;
-            return Task.CompletedTask;
-        }
-        return existingRedirector(context);
-    };
