@@ -2,13 +2,14 @@
     <div style="display: flex; align-items: center;">
         <h3 *ngIf="!algorithmId">New Algorithm will be available at:</h3>
         <h3 *ngIf="algorithmId">Algorithm available at:</h3>
-        <button mat-raised-button style="margin-left: 16px;" *ngIf="name" (click)="copy()">
+        <button mat-raised-button style="margin-left: 16px;" *ngIf="name" (click)="copyPath()">
             {{getPath()}}
             <mat-icon>content_copy</mat-icon>
         </button>
         <span *ngIf="!name" style="color: #BBB;">&nbsp;(enter a name)</span>
         <div style="flex-grow: 1;"></div>
-        <button mat-raised-button [matMenuTriggerFor]="deleteMenu">
+        <div *ngIf="!canEdit">View-Only</div>
+        <button *ngIf="canEdit" mat-raised-button [matMenuTriggerFor]="deleteMenu">
             Actions
             <mat-icon>arrow_drop_down</mat-icon>
         </button>
@@ -18,7 +19,7 @@
             </button>
         </mat-menu>
     </div>
-    <div style="display: flex; gap: 16px; margin: 16px 0;">
+    <div style="display: flex; gap: 16px; margin: 16px 0;" *ngIf="canEdit">
         <div style="max-width: 200px;">
             <mat-form-field class="w-100" style="margin-bottom: -23px;">
                 <mat-label>Algorithm Name</mat-label>
@@ -38,16 +39,29 @@
         </div>
     </div>
     <div style="display: flex; gap: 16px; align-items: center;">
-        <div>
-            <mat-form-field class="w-100" style="margin-bottom: -23px;">
-                <mat-label>Max Item Weight</mat-label>
-                <input type="number" autocomplete="off" matInput [(ngModel)]="maxItemWeight" name="maxItemWeight">
-            </mat-form-field>
-        </div>
-        <div style="flex: 1;"></div>
-
-        <channel-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addChannel($event)"></channel-search>
-        <playlist-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addPlaylist($event)"></playlist-search>
+        <ng-container *ngIf="canEdit">
+            <div>
+                <mat-form-field class="w-100" style="margin-bottom: -23px;">
+                    <mat-label>Max Item Weight <mat-icon style="color: #aaa; margin: -6px 0 -3px 4px; font-size: 19px;"
+                        matTooltip="sets the maximum video count that can contribute to the calculated weight. Useful for preventing large channels from having too much weight">info</mat-icon></mat-label>
+                    <input type="number" autocomplete="off" matInput [(ngModel)]="maxItemWeight" name="maxItemWeight">
+                </mat-form-field>
+            </div>
+            <div>
+                <mat-checkbox [checked]="isListed" color="primary"
+                    (change)="isListed = !isListed">
+                    Listed <mat-icon style="color: #aaa; margin: -6px 0 -8px 4px; font-size: 21px;"
+                    matTooltip="The algorithm is technically public either way, but unlisting it makes it harder to find.">info</mat-icon>
+                </mat-checkbox>
+            </div>
+            <div style="flex: 1;"></div>
+    
+            <channel-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addChannel($event)"></channel-search>
+            <playlist-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addPlaylist($event)"></playlist-search>
+        </ng-container>
+        <h4 *ngIf="!canEdit" class="text-muted" style="padding-top: 8px;">
+            View-Only mode, however, you can select items and copy them to your own algorithm
+        </h4>
         <div style="flex: 1;"></div>
         <div>
             <button mat-raised-button [matMenuTriggerFor]="selectedMenu" [disabled]="!getSelectedCount()">
@@ -55,6 +69,7 @@
                 <mat-icon>arrow_drop_down</mat-icon>
             </button>
             <mat-menu #selectedMenu="matMenu">
+                <button *ngIf="algorithmId" mat-menu-item [matMenuTriggerFor]="copyMenu">Copy To</button>
                 <button mat-menu-item (click)="removeSelected()">Remove</button>
                 <button mat-menu-item [matMenuTriggerFor]="folderMenu">Move to Folder</button>
             </mat-menu>
@@ -63,6 +78,12 @@
                     <button mat-menu-item (click)="addToFolder(folder)"><mat-icon>folder</mat-icon> {{folder.name}}</button>
                 </ng-container>
                 <button mat-menu-item (click)="addToFolder()"><mat-icon>add</mat-icon> new folder</button>
+            </mat-menu>
+            <mat-menu #copyMenu="matMenu">
+                <ng-container *ngFor="let algo of existingAlgorithms">
+                    <button mat-menu-item (click)="copyItemsToAlgorithm(algo)">{{algo.algorithmName}}</button>
+                </ng-container>
+                <button mat-menu-item (click)="copyItemsToAlgorithm(null)"><mat-icon>add</mat-icon> new algorithm</button>
             </mat-menu>
         </div>
     </div>
@@ -73,6 +94,8 @@
         <ng-container matColumnDef="folder">
             <th mat-header-cell *matHeaderCellDef>
                 <span [style.paddingLeft.px]="48"> Folder </span>
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                matTooltip="Folders are just a way to organize the algorithm contents on this page, nothing more. Create folders by selecting rows and using the dropdown menu">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 <div style="display: flex; align-items: center;" *ngIf="isFolder(item)">
@@ -104,7 +127,7 @@
         </ng-container>
 
         <ng-container matColumnDef="count">
-            <th mat-header-cell *matHeaderCellDef> Count </th>
+            <th mat-header-cell *matHeaderCellDef> Video Count </th>
             <td mat-cell *matCellDef="let item"> {{item.videoCount}} </td>
         </ng-container>
 
@@ -112,17 +135,20 @@
             <th mat-header-cell *matHeaderCellDef>
                 Weight Multiplier
                 <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight">info</mat-icon>
+                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight. Resulting weight not limited by max item weight">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
-                <input *ngIf="!isFolder(item)" type="number" [(ngModel)]="item.weightMultiplier">
+                <ng-container *ngIf="!isFolder(item)">
+                    <span *ngIf="!canEdit">{{item.weightMultiplier}}</span>
+                    <input type="number" *ngIf="canEdit" [(ngModel)]="item.weightMultiplier">
+                </ng-container>
             </td>
         </ng-container>
         <ng-container matColumnDef="weight">
             <th mat-header-cell *matHeaderCellDef>
                 Calculated Weight
                 <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="The weight is merely used to determine the percent of algorithm">info</mat-icon>
+                    matTooltip="This weight determines the % of algorithm. The magnitude of the weights don't really matter... what matters is each row's weight when compared to the total weight">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 {{getWeight(item)}}

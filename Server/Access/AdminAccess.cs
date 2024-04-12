@@ -128,12 +128,15 @@ public class AdminAccess
         return response;
     }
 
-    public async Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms(string? username)
+    public async Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms(string username, bool searchingOwn)
     {
         var algorithmsQuery = _videoDbContext.Algorithms.AsQueryable();
-        if (!string.IsNullOrEmpty(username))
+        if (searchingOwn)
         {
             algorithmsQuery = algorithmsQuery.Where(z => z.Username.ToLower() == username.ToLower());
+        } else
+        {
+            algorithmsQuery = algorithmsQuery.Where(z => z.Username.ToLower() != username.ToLower() && z.IsListed);
         }
         var algorithms = await algorithmsQuery.ToListAsync();
 
@@ -310,6 +313,7 @@ public class AdminAccess
         algorithm.Name = request.Name;
         algorithm.Description = request.Description;
         algorithm.MaxItemWeight = request.MaxItemWeight;
+        algorithm.IsListed = request.IsListed;
 
         //remove all algorithmItems not found among request.AlgorithmItems
         var includedChannelIds = request.AlgorithmItems.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId).Distinct().ToList();

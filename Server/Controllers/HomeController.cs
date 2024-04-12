@@ -1,19 +1,9 @@
-using System.IO;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.StaticFiles;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+
 using MyVidious.Access;
 using MyVidious.Data;
 using MyVidious.Models.Admin;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Channels;
-using System.Collections.Generic;
-using Swashbuckle.AspNetCore.Annotations;
-using MyVidious.Models.Invidious;
 
 namespace MyVidious.Controllers
 {
@@ -36,7 +26,7 @@ namespace MyVidious.Controllers
         [HttpGet("")]
         public async Task<IActionResult> GetRootPage()
         {
-            var algorithms = await _videoDbContext.Algorithms.ToListAsync();
+            var algorithms = await _videoDbContext.Algorithms.Where(z => z.IsListed).ToListAsync();
             var foundAlgorithms = algorithms.Select(z => new FoundAlgorithm
             {
                 AlgorithmId = z.Id,

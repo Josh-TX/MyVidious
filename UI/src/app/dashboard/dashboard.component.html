@@ -1,8 +1,19 @@
-<div style="margin: 16px">
-    <h2 style="margin-bottom: 16px;">Your Algorithms</h2>
-    <div *ngFor="let algorithm of algorithms" style="margin-bottom: 16px; display: flex; gap: 16px">
+<div style="margin: 16px; max-width: 800px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2>Your Algorithms</h2>
+        <button mat-raised-button [routerLink]="['/algorithm', 'new']"><mat-icon>add</mat-icon> Create New Algorithm</button>
+    </div>
+    <p *ngIf="ownAlgorithms && !ownAlgorithms.length" class="text-muted">You haven't created any algorithms</p>
+    <div *ngFor="let algorithm of ownAlgorithms" style="margin-bottom: 16px; display: flex; gap: 16px">
         <a [routerLink]="['/algorithm', algorithm.algorithmId]">{{algorithm.username}}/{{algorithm.algorithmName}}</a>
         <div class="text-muted">{{algorithm.description}}</div>
     </div>
-    <button mat-raised-button [routerLink]="['/algorithm', 'new']">Create New Algorithm</button>
+
+    <ng-container *ngIf="othersAlgorithms.length">
+        <h2 style="margin-bottom: 16px; margin-top: 32px;">Algorithms from other users</h2>
+        <div *ngFor="let algorithm of othersAlgorithms" style="margin-bottom: 16px; display: flex; gap: 16px">
+            <a [routerLink]="['/algorithm', algorithm.algorithmId]">{{algorithm.username}}/{{algorithm.algorithmName}}</a>
+            <div class="text-muted">{{algorithm.description}}</div>
+        </div>
+    </ng-container>
 </div>

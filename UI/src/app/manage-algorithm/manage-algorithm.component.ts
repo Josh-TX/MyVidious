@@ -1,12 +1,13 @@
 import { Component, ViewChild } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Client, FoundChannel, FoundPlaylist, UpdateAlgorithmRequest, UserInfo } from "generated";
+import { Client, FoundAlgorithm, FoundChannel, FoundPlaylist, UpdateAlgorithmRequest, UserInfo } from "generated";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from "rxjs";
 import { AuthService } from "../services/auth.service";
 import { MatTable } from "@angular/material/table";
 import { LoaderService } from "../services/loader.service";
 import { getDistinct, getSum } from "../services/helpers"
+import { AlgorithmService } from "../services/algorithms.service";
 
 
 type Folder = {
@@ -15,7 +16,7 @@ type Folder = {
     selected: boolean | null;
 }
 
-type AlgorithmItem = {
+export type AlgorithmItem = {
     channelId?: number | undefined;
     newChannel?: FoundChannel | undefined;
     playlistId?: number | undefined;
@@ -51,6 +52,11 @@ export class ManageAlgorithmComponent {
     folders: Folder[] = [];
     tableRows: TableRow[] = [];
     maxItemWeight: number = 100;
+    canEdit: boolean | undefined;
+    isListed: boolean = true;
+    copiedItems: AlgorithmItem[] = [];
+    existingAlgorithms: FoundAlgorithm[] = [];
+    private originalStateJson: string = "";
 
     algorithmId: number | undefined;
 
@@ -61,19 +67,31 @@ export class ManageAlgorithmComponent {
     private routeSub!: Subscription;
     ngOnInit() {
         this.routeSub = this.route.params.subscribe(params => {
+            this.loader.setIsLoading(false);
+            this.allItems = [];
+            this.folders = [];
+            this.name = "";
+            this.description = "";
+            this.tableRows = [];
+            this.maxItemWeight = 100;
+            this.originalStateJson = "";
+            this.canEdit = true;
+            this.isListed = true;
+            this.algorithmId = undefined;
             if (params["id"] && parseInt(params["id"])) {
                 this.algorithmId = parseInt(params["id"]);
                 this.loadAlgorithm(this.algorithmId);
-                if (this.table) {
-                    this.table.renderRows();
-                }
             } else {
-                this.algorithmId = undefined;
+                this.originalStateJson = this.getStateJson();
+                this.allItems.unshift(...this.copiedItems);
+                this.copiedItems = [];
+                this.updateTableRows();
             }
         });
-        // setInterval(() => {
-        //     console.log(this.allItems.map(z => z.name + " " + z.selected))
-        // })
+    }
+
+    ngOnDestroy() {
+        this.routeSub.unsubscribe();
     }
 
 
@@ -92,6 +110,29 @@ export class ManageAlgorithmComponent {
         }
     }
 
+    copyItemsToAlgorithm(algorithm: FoundAlgorithm | null){
+        if (this.unsavedChanges()){
+            if (!confirm("you have unsaved changes... exit anyways?")){
+                return;
+            }
+        }
+        this.copiedItems = this.allItems.filter(z => z.selected);
+        this.copiedItems.forEach(z => {
+            z.selected = false;
+        })
+        var part1 = `copied ${this.copiedItems.length} item${this.copiedItems.length > 1 ? 's' : ''}`;
+        this.loader.setIsLoading(true);
+        setTimeout(() => {
+            if (!algorithm || !algorithm.algorithmId){
+                this.snackBar.open(`${part1} to new algorithm`, "", { duration: 3000 });
+                this.router.navigate(["/algorithm/new"]);
+            } else {
+                this.snackBar.open(`${part1} to algorithm "${algorithm.username}/${algorithm.algorithmName}"`, "", { duration: 3000 });
+                this.router.navigate(["/algorithm", algorithm.algorithmId]);
+            }
+        }, 100);
+    }
+
     private getItemWeight(item: AlgorithmItem){
         var videoCount = item.videoCount > 0 || item.channelId != null ? item.videoCount : 100;
         return Math.min(videoCount, this.maxItemWeight) * Math.max(0, item.weightMultiplier || 0);
@@ -103,12 +144,17 @@ export class ManageAlgorithmComponent {
 
     private loadAlgorithm(algorithmId: number) {
         this.loader.setIsLoading(true);
+        this.client.getOwnAlgorithms().subscribe(z => {
+            this.existingAlgorithms = z.filter(z => z.algorithmId != algorithmId);
+        });
         this.client.getAlgorithm(algorithmId).subscribe(result => {
             this.loader.setIsLoading(false);
             this.name = result.algorithmName!;
+            this.canEdit = result.username == this.authService.getUserInfo()?.username;
             this.originalName = this.name;
             this.description = result.description!;
             this.maxItemWeight = result.maxItemWeight!;
+            this.isListed = result.isListed!;
             this.allItems = result.algorithmItems!.map(z => ({
                 name: z.name,
                 channelId: z.channelId,
@@ -119,6 +165,16 @@ export class ManageAlgorithmComponent {
                 selected: false,
                 folderName: z.folder
             }));
+            this.originalStateJson = this.getStateJson();
+            let badCopiedItems = this.copiedItems.filter(z => this.allItems.some(zz => zz.channelId == z.channelId || zz.playlistId == z.playlistId));
+            if (badCopiedItems.length){
+                //material doesn't support multiple snackbars, so delay 1.5 seconds so they have time to see the first snackbar
+                setTimeout(() => {
+                    this.snackBar.open(`${badCopiedItems.length} copied items are already on algorithm`, "", { panelClass: "snackbar-error", duration: 3000 });
+                }, 1500)
+            }
+            this.allItems.unshift(...this.copiedItems.filter(z => !badCopiedItems.includes(z)));
+            this.copiedItems = [];
             this.updateTableRows();
         });
     }
@@ -145,13 +201,12 @@ export class ManageAlgorithmComponent {
             }
         }
         this.tableRows.push(...this.allItems.filter(z => z.folderName == null));
-        this.table.renderRows();
+        if (this.table){
+            this.table.renderRows();
+        }
     }
 
 
-    ngOnDestroy() {
-        this.routeSub.unsubscribe();
-    }
 
     getPath(): string {
         if (this.name) {
@@ -165,7 +220,7 @@ export class ManageAlgorithmComponent {
             this.snackBar.open("channel already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
         }
-        this.allItems.push({
+        this.allItems.unshift({
             channelId: channel.channelId,
             newChannel: channel.channelId ? undefined : channel,
             weightMultiplier: 1,
@@ -181,7 +236,7 @@ export class ManageAlgorithmComponent {
             this.snackBar.open("playlist already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
         }
-        this.allItems.push({
+        this.allItems.unshift({
             playlistId: playlist.myvidiousPlaylistId,
             newPlaylist: playlist.myvidiousPlaylistId ? undefined : playlist,
             weightMultiplier: 1,
@@ -197,7 +252,7 @@ export class ManageAlgorithmComponent {
         this.updateTableRows();
     }
 
-    copy() {
+    copyPath() {
         navigator.clipboard.writeText(this.getPath())
             .then(() => {
                 this.snackBar.open("copied to clipboard", "", { duration: 3000 });
@@ -205,6 +260,23 @@ export class ManageAlgorithmComponent {
             .catch(err => {
                 this.snackBar.open("unable to copy to clipboard", "", { panelClass: "snackbar-error", duration: 3000 });
             });
+    }
+
+    private unsavedChanges(): boolean {
+        return this.originalStateJson != this.getStateJson();
+    }
+
+    private getStateJson(): string {
+        var itemsCopy: AlgorithmItem[] = JSON.parse(JSON.stringify(this.allItems));
+        itemsCopy.forEach(z => z.selected = false);
+        var state = {
+            items: itemsCopy,
+            list: this.isListed,
+            name: this.name,
+            desc: this.description,
+            max: this.maxItemWeight
+        };
+        return JSON.stringify(state);
     }
 
     save() {
@@ -216,10 +288,6 @@ export class ManageAlgorithmComponent {
             this.snackBar.open("algorithm name must be alphanumeric", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
         }
-        // if (!this.description) {
-        //     this.snackBar.open("algorithm description required", "", { panelClass: "snackbar-error", duration: 3000 });
-        //     return;
-        // }
         if (!this.allItems.length) {
             this.snackBar.open("algorithm is empty", "", { panelClass: "snackbar-error", duration: 3000 });
             return;
@@ -229,6 +297,7 @@ export class ManageAlgorithmComponent {
             name: this.name,
             description: this.description,
             maxItemWeight: this.maxItemWeight,
+            isListed: this.isListed,
             algorithmItems: this.allItems.map(z => ({
                 channelId: z.channelId,
                 newChannel: z.newChannel,
@@ -290,7 +359,6 @@ export class ManageAlgorithmComponent {
             if (folder) {
                 var items = this.allItems.filter(z => z.folderName == folder!.name);
                 var selected = items.filter(z => z.selected);
-                console.log(folder, items, selected)
                 if (selected.length && selected.length != items.length) {
                     folder.selected = null;
                 } else {

@@ -62,11 +62,20 @@ namespace MyVidious.Controllers
             return _adminAccess.SearchPlaylists(searchText);
         }
 
-        [HttpGet("api/search-algorithms")]
+        [HttpGet("api/own-algorithms")]
         [Authorize]
-        public Task<IEnumerable<FoundAlgorithm>> SearchAlgorithms([FromQuery] string? username)
+        public Task<IEnumerable<FoundAlgorithm>> GetOwnAlgorithms()
         {
-            return _adminAccess.SearchAlgorithms(username);
+            var username = User.FindFirst(ClaimTypes.Name)!.Value;
+            return _adminAccess.SearchAlgorithms(username, true);
+        }
+
+        [HttpGet("api/others-algorithms")]
+        [Authorize]
+        public Task<IEnumerable<FoundAlgorithm>> GetOthersAlgorithms()
+        {
+            var username = User.FindFirst(ClaimTypes.Name)!.Value;
+            return _adminAccess.SearchAlgorithms(username, false);
         }
 
         [HttpGet("api/algorithm/{algorithmId}")]

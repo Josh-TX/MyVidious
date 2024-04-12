@@ -31,6 +31,7 @@ export class LoginComponent {
             },
             error: error => {
                 this.error = "Invalid Credentials";
+                this.loader.setIsLoading(false);
             },
             complete: () => {
                 this.loader.setIsLoading(false);
