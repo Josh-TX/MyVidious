@@ -1,6 +1,10 @@
 <div style="position: relative;">
     <mat-form-field class="w-100" style="margin-bottom: -23px;">
-        <mat-label>Search Playlists</mat-label>
+        <mat-label>
+            Search Playlists
+            <mat-icon style="color: #aaa; margin: -6px 0 -3px 4px; font-size: 19px;"
+                matTooltip="Trouble finding a playlist? Try including the playlist creator's username in the search text">info</mat-icon>
+        </mat-label>
         <input autocomplete="off" matInput [(ngModel)]="text" (ngModelChange)="textChanged()" name="searchText" (blur)="blured()" (focus)="focused()">
     </mat-form-field>
     <div *ngIf="showDropdown && text" class="mat-elevation-z4" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 5; overflow-y: auto; max-height: 400px; background: #fff;">
@@ -10,7 +14,8 @@
         <div *ngFor="let result of results; let i = index;" class="hover-highlight" (mousedown)="mousedown()" (mouseup)="mouseup(result)"
             style="height: 76px; display: flex; padding: 6px 6px; border-bottom: 1px solid #ddd; cursor: pointer;" >
             <div style="height: 64px; width: 64px;">
-                <img *ngIf="result.thumbnailUrl && thumbCount >= i" [src]="result.thumbnailUrl" style="width: 64px; height: 64px">
+                <img *ngIf="result.thumbnailUrl && thumbCount >= i" [src]="result.thumbnailUrl" style="width: 64px; height: 64px"
+                    referrerpolicy="no-referrer" loading="lazy">
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; padding: 4px 0 0 8px;">
                 <div style="display: flex;">

@@ -6,6 +6,9 @@ namespace MyVidious.Models.Invidious;
 public class VideoResponse
 {
     public required string Title { get; set; }
+    /// <summary>
+    /// The UniqueID
+    /// </summary>
     public required string VideoId { get; set; }
     public IEnumerable<VideoThumbnail>? VideoThumbnails { get; set; }
     public string? Description { get; set; }

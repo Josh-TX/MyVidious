@@ -1,4 +1,3 @@
-using MyVidious.Models;
 using MyVidious.Models.Invidious;
 
 namespace MyVidious.Access;
@@ -7,11 +6,17 @@ public class InvidiousAPIAccess
 {
     private readonly HttpClient _httpClient;
     private readonly InvidiousUrlsAccess _invidiousUrlsAccess;
+    private readonly Data.VideoDbContext _videoDbContext;
 
-    public InvidiousAPIAccess(IHttpClientFactory httpClientFactory, AppSettings appSettings, InvidiousUrlsAccess invidiousUrlsAccess)
+    public InvidiousAPIAccess(
+        IHttpClientFactory httpClientFactory, 
+        InvidiousUrlsAccess invidiousUrlsAccess, 
+        Data.VideoDbContext videoDbContext
+        )
     {
         _httpClient = httpClientFactory.CreateClient();
         _invidiousUrlsAccess = invidiousUrlsAccess;
+        _videoDbContext = videoDbContext;
     }
 
     public async Task<VideoResponse> GetVideo(string videoId)
@@ -20,7 +25,13 @@ public class InvidiousAPIAccess
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception("Invidious API returned status code " + (int)response.StatusCode);
+            var videoEntity = _videoDbContext.Videos.FirstOrDefault(z => z.UniqueId == videoId);
+            if (videoEntity != null)
+            {
+                videoEntity.FailureCount++;
+                _videoDbContext.SaveChanges();
+            }
+            throw new Exception("Invidious API returned status code " + (int)response.StatusCode + " when retrieving " + url);
         }
         var json = await response.Content.ReadAsStringAsync();
         var data = System.Text.Json.JsonSerializer.Deserialize<VideoResponse>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true});

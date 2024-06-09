@@ -21,6 +21,7 @@ public class PlaylistEntity
     public string? AuthorId { get; set; }
     public string? AuthorUrl { get; set; }
 
+    public required string AddedByUser { get; set; }
     public DateTime? DateLastScraped { get; set; }
     public short ScrapeFailureCount { get; set; }
 

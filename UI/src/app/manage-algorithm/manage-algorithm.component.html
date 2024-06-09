@@ -42,7 +42,7 @@
         <ng-container *ngIf="canEdit">
             <div>
                 <mat-form-field class="w-100" style="margin-bottom: -23px;">
-                    <mat-label>Max Item Weight <mat-icon style="color: #aaa; margin: -6px 0 -3px 4px; font-size: 19px;"
+                    <mat-label>Max Base Weight <mat-icon style="color: #aaa; margin: -6px 0 -3px 4px; font-size: 19px;"
                         matTooltip="sets the maximum video count that can contribute to the calculated weight. Useful for preventing large channels from having too much weight">info</mat-icon></mat-label>
                     <input type="number" autocomplete="off" matInput [(ngModel)]="maxItemWeight" name="maxItemWeight">
                 </mat-form-field>
@@ -135,7 +135,7 @@
             <th mat-header-cell *matHeaderCellDef>
                 Weight Multiplier
                 <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight. Resulting weight not limited by max item weight">info</mat-icon>
+                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight.">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 <ng-container *ngIf="!isFolder(item)">
@@ -153,7 +153,7 @@
             <td mat-cell *matCellDef="let item">
                 {{getWeight(item)}}
                 <mat-icon *ngIf="!isFolder(item) && isGuess(item)" style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="This is assuming the channel has precisely 100 videos. We won't know until we scrape">warning</mat-icon>
+                    matTooltip="This is assuming the channel has precisely 100 videos, which is likely wrong. We won't know the video count until we scrape">warning</mat-icon>
             </td>
         </ng-container>
         <ng-container matColumnDef="percent">
@@ -164,6 +164,17 @@
             </th>
             <td mat-cell *matCellDef="let item">
                 {{getPercent(item)}}
+            </td>
+        </ng-container>
+
+        <ng-container matColumnDef="odds">
+            <th mat-header-cell *matHeaderCellDef>
+                Video Odds
+                <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
+                    matTooltip="The odds each individual video has of being randomly selected by the algorithm. Computed via Video Count / % of Algorithm">info</mat-icon>
+            </th>
+            <td mat-cell *matCellDef="let item">
+                {{getOdds(item)}}
             </td>
         </ng-container>
 

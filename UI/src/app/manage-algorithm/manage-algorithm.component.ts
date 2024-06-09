@@ -62,7 +62,7 @@ export class ManageAlgorithmComponent {
 
     @ViewChild("table") table!: MatTable<any>;
 
-    displayedColumns: string[] = ['folder', 'type', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'select'];
+    displayedColumns: string[] = ['folder', 'type', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'odds', 'select'];
     //displayedColumns: string[] = ['name', 'other', 'count'];
     private routeSub!: Subscription;
     ngOnInit() {
@@ -99,6 +99,16 @@ export class ManageAlgorithmComponent {
         var sumWeight = this.allItems.map(z => this.getWeight(z)).reduce((p, a) => p + a, 0);
         var percent = this.getWeight(item) / sumWeight
         return (Math.round(percent * 1000) / 10) + " %";
+    }
+
+    getOdds(item: AlgorithmItem): string {
+        var sumWeight = this.allItems.map(z => this.getWeight(z)).reduce((p, a) => p + a, 0);
+        var percent = this.getWeight(item) / sumWeight
+        if (percent == 0){
+            return "0";
+        }
+        var denom = Math.round(item.videoCount / percent);
+        return "1 / " + denom
     }
 
     getWeight(row: TableRow): number {

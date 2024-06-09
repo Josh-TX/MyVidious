@@ -5,6 +5,9 @@
     description text,
     max_item_weight integer NOT NULL,
     is_listed boolean NOT NULL,
+    is_restricted boolean NOT NULL,
+    bias_current_playlist integer NOT NULL,
+    bias_current_channel integer NOT NULL,
     CONSTRAINT pk_algorithm PRIMARY KEY (id)
 );
 
@@ -43,6 +46,7 @@ CREATE TABLE channel (
     auto_generated boolean NOT NULL,
     sub_count integer NOT NULL,
     video_count integer NOT NULL,
+    added_by_user text NOT NULL,
     scraped_to_oldest boolean NOT NULL,
     date_last_scraped timestamp with time zone,
     scrape_failure_count smallint NOT NULL,
@@ -68,6 +72,7 @@ CREATE TABLE playlist (
     author text,
     author_id text,
     author_url text,
+    added_by_user text NOT NULL,
     date_last_scraped timestamp with time zone,
     scrape_failure_count smallint NOT NULL,
     CONSTRAINT pk_playlist PRIMARY KEY (id)
@@ -105,6 +110,7 @@ CREATE TABLE video (
     live_now boolean NOT NULL,
     premium boolean NOT NULL,
     is_upcoming boolean NOT NULL,
+    failure_count smallint NOT NULL,
     CONSTRAINT pk_video PRIMARY KEY (id),
     CONSTRAINT fk_video_channel_channel_id FOREIGN KEY (channel_id) REFERENCES channel (id)
 );

@@ -216,6 +216,9 @@ public class AdminAccess
             {
                 Name = request.Name,
                 Username = username,
+                IsRestricted = false,
+                BiasCurrentPlaylist = 1,
+                BiasCurrentChannel = 5,
             };
         if (algorithm.Username.ToLower() != username.ToLower())
         {
@@ -252,6 +255,7 @@ public class AdminAccess
                     SubCount = newChannel.SubCount,
                     VideoCount = 0,//I want this to represent the number of videos we have tracked, not the number of videos allegedly on the channel
 
+                    AddedByUser = username,
                     DateLastScraped = null,
                     ScrapedToOldest = false,
                     ScrapeFailureCount = 0
@@ -289,6 +293,7 @@ public class AdminAccess
                     AuthorId = newPlaylist.AuthorId,
                     AuthorUrl = newPlaylist.AuthorUrl,
 
+                    AddedByUser = username,
                     DateLastScraped = null,
                     ScrapeFailureCount = 0
                 };

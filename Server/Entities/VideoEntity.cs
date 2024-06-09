@@ -35,6 +35,9 @@ public class VideoEntity
     public bool Premium { get; set; }
     public bool IsUpcoming { get; set; }
 
+    public short FailureCount { get; set; }
+
+
     [ForeignKey("ChannelId")] 
     public ChannelEntity? Channel { get; set; }
     public IList<PlaylistVideoEntity>? PlaylistVideos { get; set; }

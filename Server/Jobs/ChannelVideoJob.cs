@@ -63,7 +63,6 @@ public class ChannelVideoJob : IJob
         {
             Sort_by = "newest"
         };
-        int count = 0;
         while(true)
         {
             Models.Invidious.ChannelVideosResponse response;
@@ -82,28 +81,18 @@ public class ChannelVideoJob : IJob
             channel.ScrapeFailureCount = 0;//we reset this each time there's a success
             var uniqueIds = response.Videos.Select(z => z.VideoId).ToList();
             var existingVideos = videoDbContext.Videos.Where(z => uniqueIds.Contains(z.UniqueId)).ToList();
-            //it's possible for a playlist to have already added the video
-            var anyExistingChannels = existingVideos.Any(z => z.ChannelId.HasValue);//needed to later decide if need to keep scraping
-            existingVideos.ForEach(z => z.ChannelId = channel.Id);
+            //it's possible for a playlist to have already added the video, and therefore the channelId would be null for such videos
+            var existingVideosWithoutChannel = existingVideos.Where(z => !z.ChannelId.HasValue).ToList();
+            var anyExistingVideosWithChannel = existingVideos.Any(z => z.ChannelId.HasValue);//needed to later decide if need to keep scraping
+            existingVideosWithoutChannel.ForEach(z => z.ChannelId = channel.Id);
             var existingUniqueIds = existingVideos.Select(z => z.UniqueId).ToList();
             var videosToAdd = response.Videos.Where(z => !existingUniqueIds.Contains(z.VideoId)).Select(TranslateToEntity).ToList();
             foreach(var video in videosToAdd)
             {
-                count++;
                 video.Channel = channel;
             }
             videoDbContext.AddRange(videosToAdd);
-            if (!channel.ScrapedToOldest)
-            {
-                channel.VideoCount = count;
-            } else
-            {
-                channel.VideoCount = channel.VideoCount + videosToAdd.Count;
-            }
-            if (string.IsNullOrEmpty(response.Continuation))
-            {
-                channel.ScrapedToOldest = true;
-            }
+            channel.VideoCount = channel.VideoCount + videosToAdd.Count + existingVideosWithoutChannel.Count;
             channel.DateLastScraped = DateTime.UtcNow;
             Console.WriteLine($"scraped {videosToAdd.Count} videos for channel {channel.Name}");
             videoDbContext.SaveChanges();
@@ -114,8 +103,16 @@ public class ChannelVideoJob : IJob
                 SecondName = channel.Name,
                 FilterChannelId = channel.Id,
             }));
+            if (existingVideosWithoutChannel.Any())
+            {
+                await _meilisearchAccess.AddChannelId(existingVideosWithoutChannel.Select(z => z.Id), channel.Id);
+            }
             request.Continuation = response.Continuation;
-            if (request.Continuation == null || (anyExistingChannels && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
+            if (string.IsNullOrEmpty(response.Continuation))
+            {
+                channel.ScrapedToOldest = true;
+            }
+            if (request.Continuation == null || (anyExistingVideosWithChannel && channel.ScrapedToOldest) || stoppingToken.IsCancellationRequested)
             {
                 return;
             }

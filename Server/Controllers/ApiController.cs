@@ -41,7 +41,8 @@ public class ApiController : Controller
     {
         var videoResponse = await _invidiousAPIAccess.GetVideo(videoId);
         videoResponse.VideoThumbnails = videoResponse.VideoThumbnails?.Select(_imageUrlUtility.FixImageUrl).ToList();
-        var recommendedVideos = _algorithmAccess.GetRandomAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos?.Count() ?? 19);
+        var recommendedVideos = _algorithmAccess.GetRandomAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos?.Count() ?? 19).ToList();
+        AddCustomRecommendation(username, algorithm, recommendedVideos, videoResponse.RecommendedVideos, videoResponse); //mutates recommendedVideos
         videoResponse.RecommendedVideos = recommendedVideos;
         return videoResponse;
     }
@@ -274,6 +275,47 @@ public class ApiController : Controller
                 };
             }).ToList()
         };
+    }
+
+    /// <summary>
+    // Progpogates a youtube suggestion for the matching channel. If It's for a playlist, try to get the next playlist item
+    /// </summary>
+    private void AddCustomRecommendation(
+        string username,
+        string algorithmName,
+        List<RecommendedVideo> recommendedVideos, 
+        IEnumerable<RecommendedVideo>? originalRecommendedVideos, 
+        VideoResponse videoResponse)
+    {
+        var videoEntity = _videoDbContext.Videos.FirstOrDefault(z => z.UniqueId == videoResponse.VideoId);
+        if (videoEntity != null)
+        {
+            Models.ChannelAndPlaylistIds channelAndPlaylistIds = _algorithmAccess.GetChannelAndPlaylistIds(username, algorithmName);
+            //for performance reasons, check if the video is a part of the algorithm's channel
+            if (videoEntity.ChannelId.HasValue && channelAndPlaylistIds.ChannelIds.Contains(videoEntity.ChannelId.Value))
+            {
+                var recommendedToAdd = originalRecommendedVideos?.FirstOrDefault(z => z.AuthorId == videoResponse.AuthorId);
+                if (recommendedToAdd != null)
+                {
+                    recommendedVideos.Insert(new Random().Next(0, 3), recommendedToAdd);
+                }
+            }
+            else
+            {
+                var currentPlaylistVideo = _videoDbContext.PlaylistVideos.FirstOrDefault(z => z.VideoId == videoEntity.Id);
+                if (currentPlaylistVideo != null)
+                {
+                    var nextPlaylistVideo = _videoDbContext.PlaylistVideos
+                        .Include(z => z.Video)
+                        .FirstOrDefault(z => z.PlaylistId == currentPlaylistVideo.PlaylistId && z.Index == (currentPlaylistVideo.Index + 1))
+                        ?.Video;
+                    if (nextPlaylistVideo != null)
+                    {
+                        recommendedVideos.Insert(0, _algorithmAccess.TranslateToRecommended(nextPlaylistVideo));
+                    }
+                }
+            }
+        }
     }
 
     private class TempPlaylistVideo

@@ -10,7 +10,8 @@
         <div *ngFor="let result of results; let i = index;" class="hover-highlight" (mousedown)="mousedown()" (mouseup)="mouseup(result)"
             style="height: 76px; display: flex; padding: 6px 6px; border-bottom: 1px solid #ddd; cursor: pointer;" >
             <div style="height: 64px; width: 64px;">
-                <img *ngIf="result.thumbnailUrl && thumbCount >= i" [src]="result.thumbnailUrl" style="width: 64px; height: 64px">
+                <img *ngIf="result.thumbnailUrl && thumbCount >= i" [src]="result.thumbnailUrl" style="width: 64px; height: 64px"
+                    referrerpolicy="no-referrer" loading="lazy">
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; padding: 4px 0 0 8px;">
                 <div style="display: flex;">

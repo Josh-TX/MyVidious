@@ -29,6 +29,8 @@ public class ChannelEntity
     public int SubCount { get; set; }
     public int VideoCount { get; set; }
 
+    public required string AddedByUser { get; set; }
+
     /// <summary>
     /// When true, indicates that we've scraped all the way to the oldest. This is very important, because now anytime we scrap, we can stop as soon as we encounter an existing video
     /// </summary>

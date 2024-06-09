@@ -103,6 +103,7 @@ public class VideoDetailsJob : IJob
         video.LiveNow = response.LiveNow;
         video.Premium = response.Premium;
         video.IsUpcoming = response.IsUpcoming;
+        video.FailureCount = 0;
         videoDbContext.SaveChanges();
         
         var throttleTime = new Random().Next(1000, 2000);

@@ -44,7 +44,7 @@ public class MeilisearchAccess
         }
     }
 
-    public async Task AddPlaylistIds(IEnumerable<int> videoIds, int playlistId)
+    public async Task AddPlaylistId(IEnumerable<int> videoIds, int playlistId)
     {
         var client = GetClient();
         if (_mainIndexConfigured != true)
@@ -57,12 +57,30 @@ public class MeilisearchAccess
         var documents = tasks.Select(z => z.Result).ToList();
         foreach(var document in documents)
         {
-            document.FilterIds = document.FilterIds.Append(playlistId + FILTER_PLAYLIST_ID_OFFSET);
+            document.FilterIds = document.FilterIds.Append(playlistId + FILTER_PLAYLIST_ID_OFFSET).Distinct();
         }
         await index.UpdateDocumentsAsync(documents);
     }
 
-    public async Task RemovePlaylistIds(IEnumerable<int> videoIds, int playlistId)
+    public async Task AddChannelId(IEnumerable<int> videoIds, int channelId)
+    {
+        var client = GetClient();
+        if (_mainIndexConfigured != true)
+        {
+            await ConfigureMainIndex(client);
+        }
+        var index = client.Index(MAIN_INDEX);
+        var tasks = videoIds.Select(z => index.GetDocumentAsync<MeilisearchStoredItem>(z)).ToList();
+        await Task.WhenAll(tasks);
+        var documents = tasks.Select(z => z.Result).ToList();
+        foreach (var document in documents)
+        {
+            document.FilterIds = document.FilterIds.Append(channelId).Distinct();
+        }
+        await index.UpdateDocumentsAsync(documents);
+    }
+
+    public async Task RemovePlaylistId(IEnumerable<int> videoIds, int playlistId)
     {
         var filterPlaylistId = playlistId + FILTER_PLAYLIST_ID_OFFSET;
         var client = GetClient();
@@ -84,6 +102,21 @@ public class MeilisearchAccess
             }
         }
         await index.UpdateDocumentsAsync(documentsToUpdate);
+    }
+
+    public async Task RemoveVideo(int videoId)
+    {
+        var client = GetClient();
+        if (_mainIndexConfigured != true)
+        {
+            await ConfigureMainIndex(client);
+        }
+        var index = client.Index(MAIN_INDEX);
+        try
+        {
+            await index.DeleteOneDocumentAsync(videoId);
+        }
+        catch (Exception) { }
     }
 
     public async Task<IEnumerable<MeilisearchItem>> SearchItems(string searchText, int? page, ChannelAndPlaylistIds channelAndPlaylistIds, MeilisearchType? type = null)
@@ -151,9 +184,9 @@ public class MeilisearchAccess
         MeilisearchType type = item.VideoId.HasValue ? MeilisearchType.Video
             : item.ChannelId.HasValue ? MeilisearchType.Channel : MeilisearchType.Playlist;
         var filterIds = item.FilterPlaylistIds?.Select(z => z + FILTER_PLAYLIST_ID_OFFSET).ToList() ?? new List<int>();
-        if (item.ChannelId.HasValue)
+        if (item.FilterChannelId.HasValue)
         {
-            filterIds.Add(item.ChannelId.Value);
+            filterIds.Add(item.FilterChannelId.Value);
         }
         return new MeilisearchStoredItem
         {
@@ -207,11 +240,22 @@ public class MeilisearchItem
 {
     //precisely 1 of these 3 fields should be null
     public int? VideoId { get; set; }
+    /// <summary>
+    /// This should only be non-null when it's a Channel Type
+    /// </summary>
     public int? ChannelId { get; set; }
+    /// <summary>
+    /// This should only be non-null when it's a Playlist Type
+    /// </summary>
     public int? PlaylistId { get; set; }
 
-
+    /// <summary>
+    /// This is used for filtering to the algorithm items... so videos should specify this, and channels should specify this
+    /// </summary>
     public int? FilterChannelId { get; set; }
+    /// <summary>
+    /// This is used for filtering to the algorithm items... so videos should specify this, and playlists should specify this
+    /// </summary>
     public IEnumerable<int>? FilterPlaylistIds { get; set; }
 
 
@@ -235,7 +279,7 @@ public class MeilisearchStoredItem
     /// <summary>
     /// VideoIds range from 1 to 2147483647, ChannelIds range from 2147483648 to 3221225471, PlaylistIds range from 3221225472 to 4294967295
     /// </summary>
-    public required uint Id { get; set; }
+    public required uint Id { get; set; } 
 
     /// <summary>
     /// Should match a value from the MeilisearchType enum

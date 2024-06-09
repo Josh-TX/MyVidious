@@ -81,7 +81,7 @@ services.AddDbContext<VideoDbContext>(options =>
 services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
 services.AddMemoryCache();
 services.AddHttpContextAccessor();
-services.AddSingleton<InvidiousAPIAccess>();
+services.AddScoped<InvidiousAPIAccess>();
 services.AddSingleton<MeilisearchAccess>();
 services.AddSingleton<IContentTypeProvider, FileExtensionContentTypeProvider>();
 services.AddScoped<IPScopedCache>();

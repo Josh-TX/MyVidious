@@ -161,7 +161,7 @@ public class AlgorithmAccess
         return nextVideoIds;
     }
 
-    private RecommendedVideo TranslateToRecommended(VideoEntity video)
+    public RecommendedVideo TranslateToRecommended(VideoEntity video)
     {
         var thumbnails = video.ThumbnailsJson != null 
             ? System.Text.Json.JsonSerializer.Deserialize<IEnumerable<VideoThumbnail>>(video.ThumbnailsJson)!.ToList()
