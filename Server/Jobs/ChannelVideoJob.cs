@@ -123,7 +123,7 @@ public class ChannelVideoJob : IJob
 
     private VideoEntity TranslateToEntity(VideoObject videoObject)
     {
-        var videoThumnails = videoObject.VideoThumbnails?.Select(MakeUrlRelative);
+        var videoThumnails = videoObject.VideoThumbnails?.Select(PrepareThumbnailUrl);
         var thumbnailsJson = System.Text.Json.JsonSerializer.Serialize(videoThumnails);
         return new VideoEntity
         {
@@ -148,14 +148,9 @@ public class ChannelVideoJob : IJob
     /// <summary>
     /// Should be called prior to storing an image URL
     /// </summary>
-    private VideoThumbnail MakeUrlRelative(VideoThumbnail videoThumbnail)
+    private VideoThumbnail PrepareThumbnailUrl(VideoThumbnail videoThumbnail)
     {
-        var urlPool = _invidiousUrlsAccess.GetAllInvidiousUrls();
-        var match = urlPool.FirstOrDefault(url => videoThumbnail.Url.StartsWith(url));
-        if (match != null)
-        {
-            videoThumbnail.Url = videoThumbnail.Url.Substring(match.Length);
-        }
+        videoThumbnail.Url = _invidiousUrlsAccess.GetUrlForStorage(videoThumbnail.Url);
         return videoThumbnail;
     }
 }

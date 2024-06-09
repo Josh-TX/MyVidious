@@ -10,6 +10,7 @@ namespace MyVidious.Access;
 
 public class InvidiousUrlsAccess : IJob
 {
+    public static string STORAGE_URL = "http://invidious.com";
     private readonly HttpClient _httpClient;
     private string? _configInvidiousUrl;
     private CustomProxyConfigProvider _customProxyConfigProvider;
@@ -40,6 +41,18 @@ public class InvidiousUrlsAccess : IJob
     {
         return _urlPool.ToList();
     }
+
+    public string GetUrlForStorage(string inputUrl)
+    {
+        var match = _urlPool.FirstOrDefault(url => inputUrl.StartsWith(url));
+        if (match != null)
+        {
+            return STORAGE_URL + inputUrl.Substring(match.Length);
+        }
+        return inputUrl;
+    }
+
+
 
     private async Task<IList<string>> LoadInvidiousInstanceUrls()
     {

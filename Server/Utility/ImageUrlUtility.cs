@@ -27,6 +27,12 @@ public class ImageUrlUtility
     /// </summary>
     public VideoThumbnail FixImageUrl(VideoThumbnail videoThumbnail)
     {
+        if (videoThumbnail.Url.StartsWith(InvidiousUrlsAccess.STORAGE_URL))
+        {
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
+            videoThumbnail.Url.Replace(InvidiousUrlsAccess.STORAGE_URL, replacementUrl);
+            return videoThumbnail;
+        }
         if (videoThumbnail.Url.StartsWith(_invidiousUrl))
         {
             if (_proxyImages)

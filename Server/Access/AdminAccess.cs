@@ -180,6 +180,7 @@ public class AdminAccess
             MaxItemWeight = algorithmEntity.MaxItemWeight,
             Username = algorithmEntity.Username,
             EstimatedSumWeight = sumWeight,
+            IsListed = algorithmEntity.IsListed,
         };
         return result;
     }
