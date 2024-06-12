@@ -1,4 +1,4 @@
-name: Build and Release
+name: Publish myvidious to Dockerhub
 
 on:
   workflow_dispatch:
