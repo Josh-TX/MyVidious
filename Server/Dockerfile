@@ -1,19 +1,17 @@
-# Stage 2 - Publish dotnet 
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS dotnet-build
 
 ARG TARGETARCH
 WORKDIR /source
-COPY Server/MyVidious.csproj ./
+COPY MyVidious.csproj ./
 RUN dotnet restore
-COPY Server/. .
+COPY . .
 RUN dotnet publish -a $TARGETARCH -o /app
 
-# final stage/image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
 WORKDIR /app
 COPY --from=dotnet-build /app .
-COPY Server/Sql/. Sql/.
-COPY docker-stage/wwwroot/. wwwroot/.
+COPY Sql/. Sql/.
+COPY wwwroot/. wwwroot/.
 
 ENTRYPOINT ["./MyVidious"]
