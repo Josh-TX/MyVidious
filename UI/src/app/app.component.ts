@@ -8,6 +8,5 @@ import { Client } from 'generated';
 })
 export class AppComponent {
     constructor(private router: Router, private client: Client) {
-        this.client.getUserInfo().subscribe()
     }
 }

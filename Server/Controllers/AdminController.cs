@@ -173,22 +173,27 @@ namespace MyVidious.Controllers
             {
                 return BadRequest("Username must be at least 3 chars long");
             }
-            var existingUser = await _userManager.FindByNameAsync(request.Username);
-            if (existingUser != null)
-            {
-                return BadRequest("User already exists.");
-            }
-            request.InviteCode ??= "";
-            var inviteCode = _videoDbContext.InviteCodes.FirstOrDefault(z => z.Code == request.InviteCode);
-            if (inviteCode != null && inviteCode.RemainingUses > 0)
-            {
-                inviteCode.RemainingUses--;
-                inviteCode.UsageCount++;
-            } else
-            {
-                return BadRequest("Invalid Invite Code");
-            }
             var isAdmin = !_userManager.Users.Any();
+            if (!isAdmin)
+            { 
+                //the following validations aren't need for the admin (first user)
+                var existingUser = await _userManager.FindByNameAsync(request.Username);
+                if (existingUser != null)
+                {
+                    return BadRequest("User already exists.");
+                }
+                request.InviteCode ??= "";
+                var inviteCode = _videoDbContext.InviteCodes.FirstOrDefault(z => z.Code == request.InviteCode);
+                if (inviteCode != null && inviteCode.RemainingUses > 0)
+                {
+                    inviteCode.RemainingUses--;
+                    inviteCode.UsageCount++;
+                }
+                else
+                {
+                    return BadRequest("Invalid Invite Code");
+                }
+            }
             var user = new IdentityUser
             {
                 Id = Guid.NewGuid().ToString(),
@@ -200,7 +205,7 @@ namespace MyVidious.Controllers
                 var resultErrors = result.Errors.Select(e => e.Description);
                 return BadRequest(string.Join("\n", resultErrors));
             }
-            _videoDbContext.SaveChanges();
+            _videoDbContext.SaveChanges();//if the inviteCode remaining uses changed, this will save the change
             if (isAdmin)
             {
                 var role = new IdentityRole
