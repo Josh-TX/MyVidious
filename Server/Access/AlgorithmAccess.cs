@@ -91,7 +91,10 @@ public class AlgorithmAccess
         }
         var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username.ToLower() == username.ToLower() && z.Name.ToLower() == algorithmName.ToLower());
         var foundId = foundAlg?.Id;
-        _algorithmNameIdMap.TryAdd((username.ToLower(), algorithmName.ToLower()), foundId);
+        if (foundId.HasValue)
+        {
+            _algorithmNameIdMap.TryAdd((username.ToLower(), algorithmName.ToLower()), foundId);
+        }
         return foundId;
     }
 
