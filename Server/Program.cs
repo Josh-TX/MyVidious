@@ -1,24 +1,51 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using MyVidious.Access;
 using MyVidious.Background;
 using MyVidious.Data;
 using MyVidious.Utilities;
 using Quartz;
-using System.Diagnostics;
 using System.Net;
 using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 services.Configure<AppSettings>(builder.Configuration);
-services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value); //make AppSettings injectable instead of just IOptions<AppSettings>
+services.AddSingleton(sp =>
+{
+    var appsettings = sp.GetRequiredService<IOptions<AppSettings>>().Value;
+    if (string.IsNullOrEmpty(appsettings.ConnectionString))
+    {
+        var msg = "No Postgres ConnectionString specified. If running with docker, make sure a CONNECTIONSTRING environmental variable is specified.";
+        Console.WriteLine(msg);
+        System.Diagnostics.Debug.WriteLine(msg);
+        Environment.Exit(1);
+    }
+    if (string.IsNullOrEmpty(appsettings.MeilisearchUrl))
+    {
+        var msg = "No MeilisearchUrl specified. If running with docker, make sure a MEILISEARCHURL environmental variable is specified.";
+        Console.WriteLine(msg);
+        System.Diagnostics.Debug.WriteLine(msg);
+        Environment.Exit(1);
+    }
+    if (string.IsNullOrEmpty(appsettings.MeilisearchKey))
+    {
+        var msg = "No MeilisearchKey specified. This might cause authentication issues if the meilisearch instance specifies a MEILI_MASTER_KEY";
+        Console.WriteLine(msg);
+        System.Diagnostics.Debug.WriteLine(msg);
+    }
+    if (string.IsNullOrEmpty(appsettings.InvidiousUrl))
+    {
+        var msg = "No InvidiousUrl specified. Will use a pool of public Invidious instances loaded from " + InvidiousUrlsAccess.INSTANCES_URL;
+        Console.WriteLine(msg);
+        System.Diagnostics.Debug.WriteLine(msg);
+    }
+    return appsettings; //this makes AppSettings injectable instead of just IOptions<AppSettings>
+});
 services.AddControllers();
 services.AddHttpClient().ConfigureHttpClientDefaults((builder) =>
 {
@@ -29,6 +56,7 @@ services.AddHttpClient().ConfigureHttpClientDefaults((builder) =>
         return handler;
     });
 });
+
 
 services.AddIdentityCore<IdentityUser>(options => {
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";

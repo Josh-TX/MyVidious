@@ -10,6 +10,10 @@ namespace MyVidious.Access;
 
 public class InvidiousUrlsAccess : IJob
 {
+    public static string INSTANCES_URL = "https://api.invidious.io/instances.json";
+    /// <summary>
+    /// This is a fake baseURL used for storing urls to the database. We should always use this baseURL when storing to the database, since we don't want stored urls tied to a specific instance. 
+    /// </summary>
     public static string STORAGE_URL = "http://invidious.com";
     private readonly HttpClient _httpClient;
     private string? _configInvidiousUrl;
@@ -56,11 +60,10 @@ public class InvidiousUrlsAccess : IJob
 
     private async Task<IList<string>> LoadInvidiousInstanceUrls()
     {
-        var endpoint = "https://api.invidious.io/instances.json";
-        var response = await _httpClient.GetAsync(endpoint);
+        var response = await _httpClient.GetAsync(INSTANCES_URL);
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"Unable to load list of invidious instances from " + endpoint + ". Status code " + response.StatusCode);
+            Console.WriteLine($"Unable to load list of invidious instances from " + INSTANCES_URL + ". Status code " + response.StatusCode);
             Environment.Exit(1);
         }
         var json = await response.Content.ReadAsStringAsync();
