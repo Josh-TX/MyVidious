@@ -5,9 +5,9 @@
     description text,
     max_item_weight integer NOT NULL,
     is_listed boolean NOT NULL,
+    bias_current_channel boolean NOT NULL,
+    bias_current_playlist boolean NOT NULL,
     is_restricted boolean NOT NULL,
-    bias_current_playlist integer NOT NULL,
-    bias_current_channel integer NOT NULL,
     CONSTRAINT pk_algorithm PRIMARY KEY (id)
 );
 
