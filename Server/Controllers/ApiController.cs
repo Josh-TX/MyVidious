@@ -44,7 +44,7 @@ public class ApiController : Controller
         var recommendedVideos = _algorithmAccess.GetRandomAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos?.Count() ?? 19).ToList();
         if (_algorithmAccess.ShouldBiasRecommendations(username, algorithm))
         {
-            AddBiasedRecommendation(username, algorithm, recommendedVideos, videoResponse.RecommendedVideos, videoResponse); //mutates recommendedVideos
+            AddBiasedRecommendation(username, algorithm, recommendedVideos, videoResponse); //mutates recommendedVideos
         }
         videoResponse.RecommendedVideos = recommendedVideos;
         return videoResponse;
@@ -287,9 +287,9 @@ public class ApiController : Controller
         string username,
         string algorithmName,
         List<RecommendedVideo> recommendedVideos, 
-        IEnumerable<RecommendedVideo>? originalRecommendedVideos, 
         VideoResponse videoResponse)
     {
+        var ytRecommendedVideos = videoResponse.RecommendedVideos;
         var videoEntity = _videoDbContext.Videos.FirstOrDefault(z => z.UniqueId == videoResponse.VideoId);
         if (videoEntity != null)
         {
@@ -297,9 +297,14 @@ public class ApiController : Controller
             //for performance reasons, we first check if the video is a part of the algorithm's channel rather than playlist
             if (videoEntity.ChannelId.HasValue && channelAndPlaylistIds.ChannelIds.Contains(videoEntity.ChannelId.Value))
             {
-                var recommendedToAdd = originalRecommendedVideos?.FirstOrDefault(z => z.AuthorId == videoResponse.AuthorId);
+                var recommendedToAdd = ytRecommendedVideos?.FirstOrDefault(z => z.AuthorId == videoResponse.AuthorId);
                 if (recommendedToAdd != null)
                 {
+                    recommendedToAdd.VideoThumbnails = recommendedToAdd.VideoThumbnails?.Select(thumbnail =>
+                    {
+                        _imageUrlUtility.FixImageUrl(thumbnail);
+                        return thumbnail;
+                    });
                     recommendedVideos.Insert(new Random().Next(0, 3), recommendedToAdd);
                 }
             }
