@@ -21,7 +21,7 @@ public class AppSettings
             var msg = "ERROR: No MeilisearchUrl specified. If running with docker, make sure a MEILISEARCHURL environmental variable is specified.";
             ErrorMessage(msg);
         }
-        if (!IsValidHttpUrl(appSettings.MeilisearchUrl!, true))
+        if (!IsValidHttpUrl(appSettings.MeilisearchUrl!, false))
         {
             var msg = $"ERROR: invalid MeilisearchUrl '${appSettings.MeilisearchUrl}'. Must be a valid URL";
             ErrorMessage(msg);
@@ -44,11 +44,11 @@ public class AppSettings
         }
         if (string.IsNullOrEmpty(appSettings.ExternalInvidiousUrl))
         {
-            var msg = "WARNING: No ExternalInvidiousUrl specified. This means that all image urls will be proxied through MyVidious, causing slower load times";
+            var msg = "INFO: No ExternalInvidiousUrl specified. This means that all image urls will be proxied through MyVidious, causing slower load times";
             var msg2 = "ExternalInvidiousUrl can be set to a URL, or you can set it to 'pool', which will use a pool of public Invidious instances loaded from " + InvidiousUrlsAccess.INSTANCES_URL;
             WarningMessage(msg, msg2);
         }
-        if (!IsValidHttpUrl(appSettings.ExternalInvidiousUrl!, true))
+        else if ( !IsValidHttpUrl(appSettings.ExternalInvidiousUrl!, true))
         {
             var msg = $"ERROR: invalid ExternalInvidiousUrl '${appSettings.ExternalInvidiousUrl}'. Must be either a URL or you can set it to 'pool'.";
             ErrorMessage(msg);
