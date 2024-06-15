@@ -21,7 +21,7 @@ public class InvidiousAPIAccess
 
     public async Task<VideoResponse> GetVideo(string videoId)
     {
-        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/videos/" + videoId;
+        var url = _invidiousUrlsAccess.GetInternalInvidiousUrl() + "/api/v1/videos/" + videoId;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -74,7 +74,7 @@ public class InvidiousAPIAccess
             queryDict.Add("region", request.Region);
         }
         var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("", queryDict);
-        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/search" + queryParams;
+        var url = _invidiousUrlsAccess.GetInternalInvidiousUrl() + "/api/v1/search" + queryParams;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -90,7 +90,7 @@ public class InvidiousAPIAccess
 
     public async Task<ChannelResponse> GetChannel(string channelId)
     {
-        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/channels/" + channelId;
+        var url = _invidiousUrlsAccess.GetInternalInvidiousUrl() + "/api/v1/channels/" + channelId;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -113,7 +113,7 @@ public class InvidiousAPIAccess
             queryDict.Add("continuation", request.Continuation);
         }
         var queryParams = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("", queryDict);
-        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/channels/" + channelId + "/videos" + queryParams;
+        var url = _invidiousUrlsAccess.GetInternalInvidiousUrl() + "/api/v1/channels/" + channelId + "/videos" + queryParams;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {
@@ -126,7 +126,7 @@ public class InvidiousAPIAccess
 
     public async Task<PlaylistResponse> GetPlaylist(string playlistId)
     {
-        var url = _invidiousUrlsAccess.GetInvidiousUrl() + "/api/v1/playlists/" + playlistId;
+        var url = _invidiousUrlsAccess.GetInternalInvidiousUrl() + "/api/v1/playlists/" + playlistId;
         var response = await _httpClient.GetAsync(url);
         if (!response.IsSuccessStatusCode)
         {

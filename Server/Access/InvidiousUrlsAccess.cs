@@ -12,43 +12,59 @@ public class InvidiousUrlsAccess : IJob
 {
     public static string INSTANCES_URL = "https://api.invidious.io/instances.json";
     /// <summary>
-    /// This is a fake baseURL used for storing urls to the database. We should always use this baseURL when storing to the database, since we don't want stored urls tied to a specific instance. 
+    /// This is a fake baseURL used for storing urls to the database. We should always use this fake baseURL when storing to the database, since we don't want stored urls tied to a specific instance. 
     /// </summary>
     public static string STORAGE_URL = "http://invidious.com";
+
+    private IList<string> _internalPool = new List<string>();
+    private IList<string> _externalPool = new List<string>();
     private readonly HttpClient _httpClient;
-    private string? _configInvidiousUrl;
+    private bool _internalUsesPool;
+    private bool _externalUsesPool;
+    //private string _internalInvidiousUrl;
+    //private string _externalInvidiousUrl;
     private CustomProxyConfigProvider _customProxyConfigProvider;
 
     public InvidiousUrlsAccess(AppSettings appSettings, IHttpClientFactory httpClientFactory, CustomProxyConfigProvider customProxyConfigProvider)
     {
         System.Diagnostics.Debug.WriteLine("InvidiousUrlsAccess instantiate: " + DateTime.Now);
         _httpClient = httpClientFactory.CreateClient();
-        _configInvidiousUrl = string.IsNullOrEmpty(appSettings.InvidiousUrl) ? null : appSettings.InvidiousUrl;
         _customProxyConfigProvider = customProxyConfigProvider;
-        if (_configInvidiousUrl != null)
+        _internalUsesPool = appSettings.InternalInvidiousUrl!.ToLower() == "pool";
+        _externalUsesPool = appSettings.ExternalInvidiousUrl!.ToLower() == "pool";
+        //_externalInvidiousUrl = appSettings.ExternalInvidiousUrl!;
+        if (!_internalUsesPool)
         {
-            _urlPool = new[] { _configInvidiousUrl };
+            _internalPool = new[] { appSettings.InternalInvidiousUrl! };
+        }
+        if (!_externalUsesPool && !string.IsNullOrEmpty(appSettings.ExternalInvidiousUrl))
+        {
+            _externalPool = new[] { appSettings.ExternalInvidiousUrl };
         }
     }
     private static int _index;
 
     /// <summary>
-    /// returns a random invidious url from the pool
+    /// returns a random internal invidious url from the pool
     /// </summary>
-    public string GetInvidiousUrl()
+    public string GetInternalInvidiousUrl()
     {
-        _index = (_index + 1) % _urlPool.Count();
-        return _urlPool[_index];
+        _index = (_index + 1) % _internalPool.Count();
+        return _internalPool[_index];
     }
 
-    public IList<string> GetAllInvidiousUrls()
+    /// <summary>
+    /// returns a random external invidious url from the pool
+    /// </summary>
+    public string GetExternalInvidiousUrl()
     {
-        return _urlPool.ToList();
+        _index = (_index + 1) % _externalPool.Count();
+        return _externalPool[_index];
     }
 
     public string GetUrlForStorage(string inputUrl)
     {
-        var match = _urlPool.FirstOrDefault(url => inputUrl.StartsWith(url));
+        var match = _internalPool.FirstOrDefault(url => inputUrl.StartsWith(url));
         if (match != null)
         {
             return STORAGE_URL + inputUrl.Substring(match.Length);
@@ -56,7 +72,10 @@ public class InvidiousUrlsAccess : IJob
         return inputUrl;
     }
 
-
+    public IEnumerable<string> GetInternalUrls()
+    {
+        return _internalPool;
+    }
 
     private async Task<IList<string>> LoadInvidiousInstanceUrls()
     {
@@ -73,18 +92,23 @@ public class InvidiousUrlsAccess : IJob
         return invidiousUrls;
     }
 
-    private IList<string> _urlPool = new List<string>();
 
     async Task IJob.Execute(IJobExecutionContext context)
     {
         System.Diagnostics.Debug.WriteLine("IJob.Execute: " + DateTime.Now);
         await Task.Delay(2000);
-        if (_configInvidiousUrl != null)
+
+        if (_internalUsesPool || _externalUsesPool)
         {
-            _urlPool = new[] { _configInvidiousUrl };
-        } else
-        {
-            _urlPool = await LoadInvidiousInstanceUrls();
+            var urlPool = await LoadInvidiousInstanceUrls();
+            if (_internalUsesPool)
+            {
+                _internalPool = urlPool;
+            }
+            if (_externalUsesPool)
+            {
+                _externalPool = urlPool;
+            }
         }
 
         var routeConfig = new RouteConfig
@@ -106,9 +130,9 @@ public class InvidiousUrlsAccess : IJob
 
         var routeConfigs = new[] { routeConfig };
         var destinations = new Dictionary<string, DestinationConfig>();
-        for (var i = 0; i < _urlPool.Count; i++)
+        for (var i = 0; i < _internalPool.Count; i++)
         {
-             destinations.Add("d" + i, new DestinationConfig { Address = _urlPool[i]! });
+             destinations.Add("d" + i, new DestinationConfig { Address = _internalPool[i]! });
         }
         var clusterConfigs = new[]
         {

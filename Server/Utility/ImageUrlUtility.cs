@@ -5,14 +5,14 @@ namespace MyVidious.Utilities;
 
 public class ImageUrlUtility
 {
-    private readonly string _invidiousUrl;
+    private readonly InvidiousUrlsAccess _invidiousUrlsAccess;
     private readonly bool _proxyImages;
     private readonly string _myVidiousApiUrl;
 
     public ImageUrlUtility(AppSettings appSettings, IHttpContextAccessor httpContextAccessor, InvidiousUrlsAccess invidiousUrlsAccess)
     {
-        _invidiousUrl = invidiousUrlsAccess.GetInvidiousUrl();
-        _proxyImages = appSettings.ProxyImages;
+        _invidiousUrlsAccess = invidiousUrlsAccess;
+        _proxyImages = string.IsNullOrEmpty(appSettings.ExternalInvidiousUrl);
         var request = httpContextAccessor.HttpContext!.Request;
         var segments = request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
         var path = segments != null && segments.Length >= 2
@@ -29,22 +29,21 @@ public class ImageUrlUtility
     {
         if (videoThumbnail.Url.StartsWith(InvidiousUrlsAccess.STORAGE_URL))
         {
-            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrlsAccess.GetExternalInvidiousUrl();
             videoThumbnail.Url = videoThumbnail.Url.Replace(InvidiousUrlsAccess.STORAGE_URL, replacementUrl);
             return videoThumbnail;
         }
-        if (videoThumbnail.Url.StartsWith(_invidiousUrl))
+        var foundInvidiousUrl = _invidiousUrlsAccess.GetInternalUrls().FirstOrDefault(z => videoThumbnail.Url.StartsWith(z));
+        if (foundInvidiousUrl != null)
         {
-            if (_proxyImages)
-            {
-                videoThumbnail.Url = videoThumbnail.Url.Replace(_invidiousUrl, _myVidiousApiUrl);
-            }
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrlsAccess.GetExternalInvidiousUrl();
+            videoThumbnail.Url = videoThumbnail.Url.Replace(foundInvidiousUrl, _myVidiousApiUrl);
             return videoThumbnail;
         }
         bool startsWithHttpOrHttps = System.Text.RegularExpressions.Regex.IsMatch(videoThumbnail.Url, @"^https?://");
         if (!startsWithHttpOrHttps)
         {
-            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrlsAccess.GetExternalInvidiousUrl();
             videoThumbnail.Url = replacementUrl + "/" + videoThumbnail.Url.TrimStart('/');
         }
         return videoThumbnail;
@@ -52,25 +51,18 @@ public class ImageUrlUtility
 
     public AuthorThumbnail FixImageUrl(AuthorThumbnail thumbnail)
     {
-        if (thumbnail.Url.StartsWith(_invidiousUrl))
+        var foundInvidiousUrl = _invidiousUrlsAccess.GetInternalUrls().FirstOrDefault(z => thumbnail.Url.StartsWith(z));
+        if (foundInvidiousUrl != null)
         {
-            if (_proxyImages)
-            {
-                thumbnail.Url = thumbnail.Url.Replace(_invidiousUrl, _myVidiousApiUrl);
-            }
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrlsAccess.GetExternalInvidiousUrl();
+            thumbnail.Url = thumbnail.Url.Replace(foundInvidiousUrl, _myVidiousApiUrl);
             return thumbnail;
         }
         bool startsWithHttpOrHttps = System.Text.RegularExpressions.Regex.IsMatch(thumbnail.Url, @"^https?://");
         if (!startsWithHttpOrHttps)
         {
-            if (thumbnail.Url.StartsWith("//"))
-            {
-                thumbnail.Url = "https:" + thumbnail.Url;
-            } else
-            {
-                var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrl;
-                thumbnail.Url = replacementUrl + "/" + thumbnail.Url.TrimStart('/');
-            }
+            var replacementUrl = _proxyImages ? _myVidiousApiUrl : _invidiousUrlsAccess.GetExternalInvidiousUrl();
+            thumbnail.Url = replacementUrl + "/" + thumbnail.Url.TrimStart('/');
         }
         return thumbnail;
     }
