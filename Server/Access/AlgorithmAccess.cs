@@ -3,6 +3,7 @@ using MyVidious.Models;
 using MyVidious.Models.Invidious;
 using MyVidious.Utilities;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace MyVidious.Access;
 
@@ -74,14 +75,31 @@ public class AlgorithmAccess
         };
     }
 
+    public bool ShouldBiasRecommendations(string username, string algorithmName)
+    {
+        if (_algorithmNameBiasMap.TryGetValue((username.ToLower(), algorithmName.ToLower()), out var shouldBias))
+        {
+            return shouldBias;
+        }
+        var foundAlg = _videoDbContext.Algorithms.FirstOrDefault(z => z.Username.ToLower() == username.ToLower() && z.Name.ToLower() == algorithmName.ToLower());
+        var bias = foundAlg?.BiasCurrentChannel;
+        if (bias.HasValue)
+        {
+            _algorithmNameBiasMap.TryAdd((username.ToLower(), algorithmName.ToLower()), bias.Value);
+        }
+        return true;
+    }
+
     public void BustAlgorithmCache(string username, string algorithmName)
     {
         //this is important because if an algorithm was deleted, and then another one was created with same username & algorithmName, it'd map to the wrong Id
         _algorithmNameIdMap.TryRemove((username.ToLower(), algorithmName.ToLower()), out _);
+        _algorithmNameBiasMap.TryRemove((username.ToLower(), algorithmName.ToLower()), out _);
     }
 
 
-    private static ConcurrentDictionary<(string, string), int?> _algorithmNameIdMap = new ConcurrentDictionary<(string, string), int?>();
+    private static ConcurrentDictionary<(string, string), int> _algorithmNameIdMap = new ConcurrentDictionary<(string, string), int>();
+    private static ConcurrentDictionary<(string, string), bool> _algorithmNameBiasMap = new ConcurrentDictionary<(string, string), bool>();
 
     private int? _getAlgorithmId(string username, string algorithmName)
     {
@@ -93,7 +111,7 @@ public class AlgorithmAccess
         var foundId = foundAlg?.Id;
         if (foundId.HasValue)
         {
-            _algorithmNameIdMap.TryAdd((username.ToLower(), algorithmName.ToLower()), foundId);
+            _algorithmNameIdMap.TryAdd((username.ToLower(), algorithmName.ToLower()), foundId.Value);
         }
         return foundId;
     }

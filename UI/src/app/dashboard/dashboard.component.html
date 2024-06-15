@@ -1,7 +1,7 @@
 <div style="margin: 16px; max-width: 800px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <h2>Your Algorithms</h2>
-        <button mat-raised-button [routerLink]="['/algorithm', 'new']"><mat-icon>add</mat-icon> Create New Algorithm</button>
+        <button mat-raised-button color="primary" [routerLink]="['/algorithm', 'new']"><mat-icon>add</mat-icon> Create New Algorithm</button>
     </div>
     <p *ngIf="ownAlgorithms && !ownAlgorithms.length" class="text-muted">You haven't created any algorithms</p>
     <div *ngFor="let algorithm of ownAlgorithms" style="margin-bottom: 16px; display: flex; gap: 16px">

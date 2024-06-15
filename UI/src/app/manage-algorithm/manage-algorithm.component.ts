@@ -54,6 +54,7 @@ export class ManageAlgorithmComponent {
     maxItemWeight: number = 100;
     canEdit: boolean | undefined;
     isListed: boolean = true;
+    biasChannel: boolean = true;
     copiedItems: AlgorithmItem[] = [];
     existingAlgorithms: FoundAlgorithm[] = [];
     private originalStateJson: string = "";
@@ -65,6 +66,8 @@ export class ManageAlgorithmComponent {
     displayedColumns: string[] = ['folder', 'type', 'name', 'count', 'weightMultiplier', 'weight', 'percent', 'odds', 'select'];
     //displayedColumns: string[] = ['name', 'other', 'count'];
     private routeSub!: Subscription;
+    private beforeUnloadFunc!: (e: BeforeUnloadEvent) => any;
+
     ngOnInit() {
         this.routeSub = this.route.params.subscribe(params => {
             this.loader.setIsLoading(false);
@@ -88,10 +91,20 @@ export class ManageAlgorithmComponent {
                 this.updateTableRows();
             }
         });
+        this.beforeUnloadFunc = ((e: BeforeUnloadEvent) => {
+            if (this.unsavedChanges()){
+                const confirmationMessage = 'You have unsaved changes. Are you sure you want to leave this page?';
+                (e || window.event).returnValue = confirmationMessage;
+                return confirmationMessage;
+            }
+            return undefined;
+        }).bind(this);
+        window.addEventListener('beforeunload', this.beforeUnloadFunc);
     }
 
     ngOnDestroy() {
         this.routeSub.unsubscribe();
+        window.removeEventListener('beforeunload', this.beforeUnloadFunc);
     }
 
 
@@ -134,10 +147,10 @@ export class ManageAlgorithmComponent {
         this.loader.setIsLoading(true);
         setTimeout(() => {
             if (!algorithm || !algorithm.algorithmId){
-                this.snackBar.open(`${part1} to new algorithm`, "", { duration: 3000 });
+                this.snackBar.open(`${part1} to new algorithm`, "", { duration: 5000 });
                 this.router.navigate(["/algorithm/new"]);
             } else {
-                this.snackBar.open(`${part1} to algorithm "${algorithm.username}/${algorithm.algorithmName}"`, "", { duration: 3000 });
+                this.snackBar.open(`${part1} to algorithm "${algorithm.username}/${algorithm.algorithmName}"`, "", { duration: 5000 });
                 this.router.navigate(["/algorithm", algorithm.algorithmId]);
             }
         }, 100);
@@ -165,6 +178,7 @@ export class ManageAlgorithmComponent {
             this.description = result.description!;
             this.maxItemWeight = result.maxItemWeight!;
             this.isListed = result.isListed!;
+            this.biasChannel = result.biasChannel!;
             this.allItems = result.algorithmItems!.map(z => ({
                 name: z.name,
                 channelId: z.channelId,
@@ -180,7 +194,7 @@ export class ManageAlgorithmComponent {
             if (badCopiedItems.length){
                 //material doesn't support multiple snackbars, so delay 1.5 seconds so they have time to see the first snackbar
                 setTimeout(() => {
-                    this.snackBar.open(`${badCopiedItems.length} copied items are already on algorithm`, "", { panelClass: "snackbar-error", duration: 3000 });
+                    this.snackBar.open(`${badCopiedItems.length} copied items are already on algorithm`, "", { panelClass: "snackbar-error", duration: 5000 });
                 }, 1500)
             }
             this.allItems.unshift(...this.copiedItems.filter(z => !badCopiedItems.includes(z)));
@@ -227,7 +241,7 @@ export class ManageAlgorithmComponent {
 
     addChannel(channel: FoundChannel) {
         if (this.allItems.some(z => z.uniqueId == channel.authorId)){
-            this.snackBar.open("channel already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
+            this.snackBar.open("channel already exists on algorithm", "", { panelClass: "snackbar-error", duration: 5000 });
             return;
         }
         this.allItems.unshift({
@@ -243,7 +257,7 @@ export class ManageAlgorithmComponent {
     }
     addPlaylist(playlist: FoundPlaylist) {
         if (this.allItems.some(z => z.uniqueId == playlist.playlistId)){
-            this.snackBar.open("playlist already exists on algorithm", "", { panelClass: "snackbar-error", duration: 3000 });
+            this.snackBar.open("playlist already exists on algorithm", "", { panelClass: "snackbar-error", duration: 5000 });
             return;
         }
         this.allItems.unshift({
@@ -263,13 +277,29 @@ export class ManageAlgorithmComponent {
     }
 
     copyPath() {
-        navigator.clipboard.writeText(this.getPath())
-            .then(() => {
-                this.snackBar.open("copied to clipboard", "", { duration: 3000 });
-            })
-            .catch(err => {
-                this.snackBar.open("unable to copy to clipboard", "", { panelClass: "snackbar-error", duration: 3000 });
+        var path = this.getPath();
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(path).then(() => {
+                this.snackBar.open("copied to clipboard!", "", { duration: 5000 });
+            }).catch(err => {
+                this.snackBar.open("failed copied to clipboard!", "", { panelClass: "snackbar-error", duration: 5000 });
             });
+        } else {
+            // Fallback for older browsers
+            let textArea = document.createElement("textarea");
+            textArea.value = path;
+            textArea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                this.snackBar.open("copied to clipboard", "", { duration: 5000 });
+            } catch (err) {
+                this.snackBar.open("failed copied to clipboard", "", { panelClass: "snackbar-error", duration: 5000 });
+            }
+            document.body.removeChild(textArea);
+        }
     }
 
     private unsavedChanges(): boolean {
@@ -291,15 +321,15 @@ export class ManageAlgorithmComponent {
 
     save() {
         if (!this.name) {
-            this.snackBar.open("algorithm name required", "", { panelClass: "snackbar-error", duration: 3000 });
+            this.snackBar.open("algorithm name required", "", { panelClass: "snackbar-error", duration: 5000 });
             return;
         }
         if (!/^[a-zA-Z0-9]+$/.test(this.name)) {
-            this.snackBar.open("algorithm name must be alphanumeric", "", { panelClass: "snackbar-error", duration: 3000 });
+            this.snackBar.open("algorithm name must be alphanumeric", "", { panelClass: "snackbar-error", duration: 5000 });
             return;
         }
         if (!this.allItems.length) {
-            this.snackBar.open("algorithm is empty", "", { panelClass: "snackbar-error", duration: 3000 });
+            this.snackBar.open("algorithm is empty", "", { panelClass: "snackbar-error", duration: 5000 });
             return;
         }
         var request: UpdateAlgorithmRequest = {
@@ -308,6 +338,7 @@ export class ManageAlgorithmComponent {
             description: this.description,
             maxItemWeight: this.maxItemWeight,
             isListed: this.isListed,
+            biasCurrentChannel: this.biasChannel,
             algorithmItems: this.allItems.map(z => ({
                 channelId: z.channelId,
                 newChannel: z.newChannel,
@@ -320,7 +351,7 @@ export class ManageAlgorithmComponent {
         this.loader.setIsLoading(true);
         this.client.updateAlgorithm(request).subscribe({
             next: id => {
-                this.snackBar.open("Algorithm Saved. Changes may take a few minutes to take effect on the API", "", { duration: 3000 });
+                this.snackBar.open("Algorithm Saved. Changes may take a few minutes to take effect on the API", "", { duration: 5000 });
                 if (!this.algorithmId) {
                     this.router.navigate(["/algorithm", id])
                 } else {
@@ -328,7 +359,7 @@ export class ManageAlgorithmComponent {
                 }
             },
             error: err => {
-                this.snackBar.open(err, "", { panelClass: "snackbar-error", duration: 3000 });
+                this.snackBar.open(err, "", { panelClass: "snackbar-error", duration: 5000 });
                 this.loader.setIsLoading(false);
             }
         })
@@ -338,7 +369,7 @@ export class ManageAlgorithmComponent {
         if (confirm("Are you sure you want to delete this algorithm?") && this.algorithmId) {
             this.loader.setIsLoading(true);
             this.client.deleteAlgorithm(this.algorithmId).subscribe(z => {
-                this.snackBar.open("Algorithm Deleted", "", { duration: 3000 });
+                this.snackBar.open("Algorithm Deleted", "", { duration: 5000 });
                 this.router.navigate(["/"])
             })
         }

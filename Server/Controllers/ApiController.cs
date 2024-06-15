@@ -42,7 +42,10 @@ public class ApiController : Controller
         var videoResponse = await _invidiousAPIAccess.GetVideo(videoId);
         videoResponse.VideoThumbnails = videoResponse.VideoThumbnails?.Select(_imageUrlUtility.FixImageUrl).ToList();
         var recommendedVideos = _algorithmAccess.GetRandomAlgorithmVideos(username, algorithm, videoResponse.RecommendedVideos?.Count() ?? 19).ToList();
-        AddCustomRecommendation(username, algorithm, recommendedVideos, videoResponse.RecommendedVideos, videoResponse); //mutates recommendedVideos
+        if (_algorithmAccess.ShouldBiasRecommendations(username, algorithm))
+        {
+            AddBiasedRecommendation(username, algorithm, recommendedVideos, videoResponse.RecommendedVideos, videoResponse); //mutates recommendedVideos
+        }
         videoResponse.RecommendedVideos = recommendedVideos;
         return videoResponse;
     }
@@ -280,7 +283,7 @@ public class ApiController : Controller
     /// <summary>
     // Progpogates a youtube suggestion for the matching channel. If It's for a playlist, try to get the next playlist item
     /// </summary>
-    private void AddCustomRecommendation(
+    private void AddBiasedRecommendation(
         string username,
         string algorithmName,
         List<RecommendedVideo> recommendedVideos, 
@@ -291,7 +294,7 @@ public class ApiController : Controller
         if (videoEntity != null)
         {
             Models.ChannelAndPlaylistIds channelAndPlaylistIds = _algorithmAccess.GetChannelAndPlaylistIds(username, algorithmName);
-            //for performance reasons, check if the video is a part of the algorithm's channel
+            //for performance reasons, we first check if the video is a part of the algorithm's channel rather than playlist
             if (videoEntity.ChannelId.HasValue && channelAndPlaylistIds.ChannelIds.Contains(videoEntity.ChannelId.Value))
             {
                 var recommendedToAdd = originalRecommendedVideos?.FirstOrDefault(z => z.AuthorId == videoResponse.AuthorId);

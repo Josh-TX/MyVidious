@@ -113,3 +113,8 @@ a {
         color: #000;
     }
 }
+
+.tight-label .mdc-label{
+    padding-left: 0;
+    margin-left: -3px;
+}

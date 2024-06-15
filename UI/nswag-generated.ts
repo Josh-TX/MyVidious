@@ -1387,6 +1387,7 @@ export interface LoadAlgorithmResult {
     maxItemWeight?: number;
     description?: string | undefined;
     isListed?: boolean;
+    biasChannel?: boolean;
     algorithmItems?: LoadAlgorithmItem[] | undefined;
     estimatedSumWeight?: number;
 }
@@ -1472,6 +1473,7 @@ export interface UpdateAlgorithmRequest {
     description?: string | undefined;
     maxItemWeight?: number;
     isListed?: boolean;
+    biasCurrentChannel?: boolean;
     algorithmItems?: UpdateAlgorithmItem[] | undefined;
 }
 

@@ -1,7 +1,8 @@
 version: '3.9'
 
 services:
-  db: #this serves as the database for both 
+
+  db: #this server as the database for both 
     image: joshtxdev/myvidious-postgres
     restart: always
     volumes:
@@ -38,7 +39,7 @@ services:
           dbname: invidious
           user: postgres
           password: password
-          host: sql
+          host: db
           port: 5432
         check_tables: true
         external_port: 3000

@@ -181,6 +181,7 @@ public class AdminAccess
             Username = algorithmEntity.Username,
             EstimatedSumWeight = sumWeight,
             IsListed = algorithmEntity.IsListed,
+            BiasChannel = algorithmEntity.BiasCurrentChannel,
         };
         return result;
     }
@@ -217,9 +218,10 @@ public class AdminAccess
             {
                 Name = request.Name,
                 Username = username,
+                IsListed = true,
+                BiasCurrentChannel = true,
+                BiasCurrentPlaylist = true,
                 IsRestricted = false,
-                BiasCurrentPlaylist = 1,
-                BiasCurrentChannel = 5,
             };
         if (algorithm.Username.ToLower() != username.ToLower())
         {
@@ -320,6 +322,8 @@ public class AdminAccess
         algorithm.Description = request.Description;
         algorithm.MaxItemWeight = request.MaxItemWeight;
         algorithm.IsListed = request.IsListed;
+        algorithm.BiasCurrentChannel = request.BiasCurrentChannel;
+        algorithm.BiasCurrentPlaylist = request.BiasCurrentChannel;
 
         //remove all algorithmItems not found among request.AlgorithmItems
         var includedChannelIds = request.AlgorithmItems.Where(z => z.ChannelId.HasValue).Select(z => z.ChannelId).Distinct().ToList();

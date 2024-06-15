@@ -2,8 +2,8 @@
     <div style="display: flex; align-items: center;">
         <h3 *ngIf="!algorithmId">New Algorithm will be available at:</h3>
         <h3 *ngIf="algorithmId">Algorithm available at:</h3>
-        <button mat-raised-button style="margin-left: 16px;" *ngIf="name" (click)="copyPath()">
-            {{getPath()}}
+        <a [href]="getPath()" style="margin-left: 12px;"><h3>{{getPath()}}</h3></a><button mat-raised-button style="margin-left: 24px;" *ngIf="name" (click)="copyPath()">
+            copy
             <mat-icon>content_copy</mat-icon>
         </button>
         <span *ngIf="!name" style="color: #BBB;">&nbsp;(enter a name)</span>
@@ -28,7 +28,7 @@
         </div>
         <div style="flex-grow: 1;">
             <mat-form-field class="w-100" style="margin-bottom: -23px;">
-                <mat-label>Algorithm Description</mat-label>
+                <mat-label>Algorithm Description (optional)</mat-label>
                 <input autocomplete="off" matInput [(ngModel)]="description" name="description">
             </mat-form-field>
         </div>
@@ -49,13 +49,18 @@
             </div>
             <div>
                 <mat-checkbox [checked]="isListed" color="primary"
-                    (change)="isListed = !isListed">
+                    (change)="isListed = !isListed" class="tight-label">
                     Listed <mat-icon style="color: #aaa; margin: -6px 0 -8px 4px; font-size: 21px;"
-                    matTooltip="The algorithm is technically public either way, but unlisting it makes it harder to find.">info</mat-icon>
+                    matTooltip="The algorithm is technically public either way, but unlisting it makes it harder to for others to find it.">info</mat-icon>
                 </mat-checkbox>
             </div>
-            <div style="flex: 1;"></div>
-    
+            <div style="margin-right: 12px;">
+                <mat-checkbox [checked]="biasChannel" color="primary"
+                    (change)="biasChannel = !biasChannel" class="tight-label">
+                    Bias Matching Channel <mat-icon style="color: #aaa; margin: -6px 0 -8px 4px; font-size: 21px;"
+                    matTooltip="When watching a video, the algorithm can suggest one video that's propogated from Youtube's algorithm IF it's for the same channel currently being watched.">info</mat-icon>
+                </mat-checkbox>
+            </div>
             <channel-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addChannel($event)"></channel-search>
             <playlist-search style="flex-grow: 1; max-width: 600px;" (itemSelect)="addPlaylist($event)"></playlist-search>
         </ng-container>
@@ -135,7 +140,7 @@
             <th mat-header-cell *matHeaderCellDef>
                 Weight Multiplier
                 <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight.">info</mat-icon>
+                    matTooltip="Set this to a number between 0 & 1 to reduce the weight, or set it to a higher number to increase the weight. A weight of 0 can make the channel searchable but never suggested (except for bias-matching-channel).">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 <ng-container *ngIf="!isFolder(item)">
@@ -171,7 +176,7 @@
             <th mat-header-cell *matHeaderCellDef>
                 Video Odds
                 <mat-icon style="color: #aaa; margin: -6px 0 -6px 4px"
-                    matTooltip="The odds each individual video has of being randomly selected by the algorithm. Computed via Video Count / % of Algorithm">info</mat-icon>
+                    matTooltip="The odds each individual video has of being randomly selected by the algorithm. Simply a function of Video Count and % of Algorithm">info</mat-icon>
             </th>
             <td mat-cell *matCellDef="let item">
                 {{getOdds(item)}}
