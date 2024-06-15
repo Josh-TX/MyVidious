@@ -18,7 +18,7 @@ services.Configure<AppSettings>(builder.Configuration);
 services.AddSingleton(sp =>
 {
     var appsettings = sp.GetRequiredService<IOptions<AppSettings>>().Value;
-    AppSettings.Validate(appsettings);
+    //AppSettings.Validate(appsettings);
     return appsettings; //this makes AppSettings injectable instead of just IOptions<AppSettings>
 });
 services.AddControllers();
@@ -143,6 +143,9 @@ services.AddQuartz(quartz =>
 services.AddQuartzHostedService();
 
 var app = builder.Build();
+
+var appsettings = app.Services.GetRequiredService<IOptions<AppSettings>>();
+AppSettings.Validate(appsettings.Value);
 
 app.UseMiddleware<WebRequestExceptionMiddleware>();
 app.MapControllers();
