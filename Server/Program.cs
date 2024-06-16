@@ -18,7 +18,6 @@ services.Configure<AppSettings>(builder.Configuration);
 services.AddSingleton(sp =>
 {
     var appsettings = sp.GetRequiredService<IOptions<AppSettings>>().Value;
-    //AppSettings.Validate(appsettings);
     return appsettings; //this makes AppSettings injectable instead of just IOptions<AppSettings>
 });
 services.AddControllers();
@@ -150,7 +149,7 @@ AppSettings.Validate(appsettings.Value);
 app.UseMiddleware<WebRequestExceptionMiddleware>();
 app.MapControllers();
 #if DEBUG
-//app.UseDeveloperExceptionPage(); //This prevents the WebRequestExceptionMiddleware from working correctly
+//app.UseDeveloperExceptionPage(); //This prevents the WebRequestExceptionMiddleware from working correctly, so keep it commented out. 
 #endif
 app.UseSwagger();
 app.UseSwaggerUI(z => z.SwaggerEndpoint("/swagger/v1/swagger.json", "MyVidious API V1"));

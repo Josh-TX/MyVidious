@@ -23,7 +23,7 @@ public class AppSettings
         }
         if (!IsValidHttpUrl(appSettings.MeilisearchUrl!, false))
         {
-            var msg = $"ERROR: invalid MeilisearchUrl '${appSettings.MeilisearchUrl}'. Must be a valid URL";
+            var msg = $"ERROR: invalid MeilisearchUrl '{appSettings.MeilisearchUrl}'. Must be a valid URL";
             ErrorMessage(msg);
         }
         if (string.IsNullOrEmpty(appSettings.InternalInvidiousUrl))
@@ -34,7 +34,7 @@ public class AppSettings
         }
         if (!IsValidHttpUrl(appSettings.InternalInvidiousUrl!, true))
         {
-            var msg = $"ERROR: invalid InternalInvidiousUrl '${appSettings.InternalInvidiousUrl}'. Must be either a URL or you can set it to 'pool'.";
+            var msg = $"ERROR: invalid InternalInvidiousUrl '{appSettings.InternalInvidiousUrl}'. Must be either a URL or you can set it to 'pool'.";
             ErrorMessage(msg);
         }
         if (string.IsNullOrEmpty(appSettings.MeilisearchKey))
@@ -50,7 +50,7 @@ public class AppSettings
         }
         else if ( !IsValidHttpUrl(appSettings.ExternalInvidiousUrl!, true))
         {
-            var msg = $"ERROR: invalid ExternalInvidiousUrl '${appSettings.ExternalInvidiousUrl}'. Must be either a URL or you can set it to 'pool'.";
+            var msg = $"ERROR: invalid ExternalInvidiousUrl '{appSettings.ExternalInvidiousUrl}'. Must be either a URL or you can set it to 'pool'.";
             ErrorMessage(msg);
         }
     }
